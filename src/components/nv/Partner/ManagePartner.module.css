@@ -1,0 +1,484 @@
+/* ===== TOOLBAR - Đẩy hết về bên trái ===== */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  margin-top: 10px
+}
+
+/* Tabs - Bên trái */
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  background: var(--background);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tab:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
+.tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tabActive {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Actions - Cũng bên trái, sau tabs */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+/* Search - Chiếm phần còn lại */
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 320px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--text-secondary);
+  width: 16px;
+  height: 16px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  padding-left: var(--space-8);
+  padding-right: var(--space-8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  background: var(--background);
+  color: var(--text-primary);
+  transition: all 0.2s;
+  height: 36px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.1);
+  background: var(--surface);
+}
+
+.searchInput::placeholder {
+  color: var(--text-secondary);
+}
+
+.clearBtn {
+  position: absolute;
+  right: var(--space-2);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.clearBtn:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.refreshBtn,
+.exportBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.refreshBtn:hover,
+.exportBtn:hover {
+  background: var(--background);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.refreshBtn:active {
+  transform: rotate(180deg);
+}
+
+/* ===== TABLE WRAPPER - Xử lý tràn ===== */
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--border)
+}
+.title svg {
+  color: var(--primary)
+}
+/* ===== TABLE ===== */
+.table {
+  width: 100%;
+  min-width: 1200px; /* Đảm bảo bảng không bị co quá nhỏ */
+  border-collapse: collapse;
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--border);
+  background-color:  var(--surface);
+}
+
+.table thead tr {
+  border-bottom: 2px solid var(--border);
+}
+
+.table th {
+  padding: var(--space-2) var(--space-2);
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  /* position: sticky; */
+  top: 0;
+  z-index: 5;
+}
+
+/* Table Body */
+.table tbody tr {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.table tbody tr:hover {
+  background: var(--background);
+}
+
+.table tbody tr.activeRow {
+  background: #DBEAFE;
+  border-left: 3px solid var(--primary);
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table td {
+  padding: var(--space-2) var(--space-2);
+  color: var(--text-primary);
+  vertical-align: middle;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Custom Columns */
+.table td:first-child {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.partnerCode {
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary);
+}
+
+.partnerName {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== STATUS BADGE ===== */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: 16px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.statusApproved {
+  background: #D1FAE5;
+  color: #065F46;
+  border-color: #6EE7B7;
+}
+
+.statusPending {
+  background: #FEF3C7;
+  color: #92400E;
+  border-color: #FCD34D;
+}
+
+.statusRejected {
+  background: #FEE2E2;
+  color: #991B1B;
+  border-color: #FCA5A5;
+}
+
+.statusInactive {
+  background: #F3F4F6;
+  color: #4B5563;
+  border-color: #D1D5DB;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.actionButtons {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.viewBtn,
+.editBtn,
+.approveBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+
+.viewBtn:hover {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+
+.editBtn:hover {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.approveBtn:hover {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+/* ===== PAGINATION ===== */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.pageInfo {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.pageControls {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.pageBtn {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  min-width: 32px;
+  text-align: center;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: var(--background);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageActive {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* ===== MODAL ===== */
+.modalContent {
+  padding: var(--space-2) 0;
+}
+
+.sectionTitle {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-4) 0;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.formGroup label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.formGroup input {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  background: var(--background);
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(45, 108, 223, 0.1);
+}
+
+.formGroup input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Modal Tabs */
+.modalTabs {
+  display: flex;
+  gap: var(--space-1);
+  background: var(--background);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.modalTabs button {
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.modalTabs button:hover {
+  color: var(--text-primary);
+  background: var(--surface);
+}
+
+.modalTabs .activeTab {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.tabContent {
+  padding: var(--space-4);
+  background: var(--background);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  min-height: 80px;
+  margin-bottom: var(--space-4);
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.modalFooter button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

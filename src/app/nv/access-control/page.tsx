@@ -3,8 +3,8 @@
 import styles from "./page.module.css";
 import Button from "@/components/shared/Button/Button";
 import {useState} from "react";
-import PermissionModal from "@/components/bgd/AccessControl/PermissionModal";
-import AccountList from "@/components/bgd/AccessControl/AccountList";
+import PermissionModal from "@/components/nv/AccessControl/PermissionModal";
+import AccountList from "@/components/nv/AccessControl/AccountList";
 
 export default function AccessControlPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
