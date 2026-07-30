@@ -2,7 +2,7 @@
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: var(--space-6);
-    margin-top: var(--space-5);
+    margin-top: var(--space-1);
 }
 
 .leftPanel,

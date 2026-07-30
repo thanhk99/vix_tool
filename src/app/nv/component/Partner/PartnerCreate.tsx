@@ -111,16 +111,6 @@ export default function PartnerCreate({ onSave, onCancel }: PartnerCreateProps) 
             <h2>Thêm mới đối tác</h2>
           </div>
         </div>
-        <div className={styles.headerActions}>
-          <button onClick={handleCancel}>
-            <X size={16} />
-            Hủy
-          </button>
-          <button onClick={handleSave}>
-            <Save size={16} />
-            Lưu
-          </button>
-        </div>
       </div>
 
       {/* Tabs */}
@@ -304,6 +294,16 @@ export default function PartnerCreate({ onSave, onCancel }: PartnerCreateProps) 
             </div>
           </div>
         )}
+        <div className={styles.actions}>
+          <button onClick={handleCancel}>
+            <X size={16} />
+            Hủy
+          </button>
+          <button onClick={handleSave}>
+            <Save size={16} />
+            Lưu
+          </button>
+        </div>
       </div>
     </div>
   );

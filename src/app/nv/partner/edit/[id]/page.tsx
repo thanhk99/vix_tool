@@ -3,8 +3,8 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { mockPartners, PartnerItem } from '@/mock/partner';
-import PartnerEdit from '@/components/nv/Partner/PartnerEdit';
 import styles from './page.module.css';
+import PartnerEdit from '@/app/nv/component/Partner/PartnerEdit';
 
 export default function PartnerEditPage() {
   const params = useParams();

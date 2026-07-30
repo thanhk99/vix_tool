@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import styles from "./AccountList.module.css";
-import { Eye, Pen, Ban } from "lucide-react";
+import { Eye, Pen } from "lucide-react";
 
 interface Account {
   id: string;

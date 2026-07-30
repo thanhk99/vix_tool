@@ -2,8 +2,8 @@
 
 import { useParams } from 'next/navigation';
 import { mockPartners } from '@/mock/partner';
-import PartnerView from '@/components/nv/Partner/PartnerView';
 import styles from './page.module.css';
+import PartnerView from '@/app/nv/component/Partner/PartnerView';
 
 export default function PartnerViewPage() {
   const params = useParams();

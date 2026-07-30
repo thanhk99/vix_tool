@@ -3,9 +3,9 @@
 import styles from "./page.module.css";
 import Button from "@/components/shared/Button/Button";
 import {useState} from "react";
-import PermissionModal from "@/components/nv/AccessControl/PermissionModal";
-import AccountList from "@/components/nv/AccessControl/AccountList";
-
+import PermissionModal from "../component/AccessControl/PermissionModal";
+import AccountList
+ from "../component/AccessControl/AccountList";
 export default function AccessControlPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const handleSave = (data: any) => {

@@ -246,7 +246,7 @@ export default function ManagePartner() {
               <th>Trạng thái</th>
               <th>Ngày chỉnh sửa</th>
               <th>User thực hiện</th>
-              {/* <th>Thao tác</th> */}
+              <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -283,7 +283,7 @@ export default function ManagePartner() {
                   </td>
                   <td>{partner.approvedDate}</td>
                   <td>{partner.userApprove}</td>
-                  {/* <td>
+                  <td>
                     <div className={styles.actionButtons}>
                       <button
                         className={styles.viewBtn}
@@ -318,7 +318,7 @@ export default function ManagePartner() {
                         </button>
                       )}
                     </div>
-                  </td> */}
+                  </td>
                 </tr>
               ))
             ) : (

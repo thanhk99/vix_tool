@@ -12,7 +12,7 @@ export default function NvLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Header />
-        <main style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)', backgroundColor: 'var(--background)' }}>
+        <main style={{ flex: 1, overflowY: 'auto', padding:'var(--space-1)', backgroundColor: 'var(--background)' }}>
           {children}
         </main>
       </div>

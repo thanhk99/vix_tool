@@ -65,16 +65,6 @@ export default function PartnerEdit({ partner, onSave, onCancel }: PartnerEditPr
             <h2>Chỉnh sửa đối tác</h2>
           </div>
         </div>
-        <div className={styles.headerActions}>
-          <button onClick={handleCancel}>
-            <X size={16} />
-            Hủy
-          </button>
-          <button onClick={handleSave}>
-            <Save size={16} />
-            Lưu
-          </button>
-        </div>
       </div>
 
       {/* ===== THÔNG TIN CHUNG (Phần trên - chỉ đọc) ===== */}
@@ -352,6 +342,16 @@ export default function PartnerEdit({ partner, onSave, onCancel }: PartnerEditPr
                 />
               </div>
             </div>
+            <div className={styles.actions}>
+                <button onClick={handleCancel}>
+                  <X size={16} />
+                  Hủy
+                </button>
+                <button onClick={handleSave}>
+                  <Save size={16} />
+                  Lưu
+                </button>
+              </div>
           </div>
         )}
 
