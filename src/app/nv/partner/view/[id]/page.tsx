@@ -7,15 +7,17 @@ import { useEffect, useState } from "react";
 import styles from "./page.module.css";
 import { UsersRound, X } from "lucide-react";
 import { PartnersItem } from "@/types/funding.types";
+import SignatureTab from "@/app/nv/component/Partners/SignatureTab";
+import AuthorizationTab from "@/app/nv/component/Partners/AuthorizationTab";
 
 export default function PartnerView() {
     const params = useParams();
-    console.log(params)
     const router = useRouter();
     const id = params.id as string;
     const [partner, setPartner] = useState<PartnersItem | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'asset' | 'limit'>('signature');
 
     useEffect(() => {
         const fetchPartner = async() => {
@@ -105,6 +107,65 @@ export default function PartnerView() {
                     <div className={styles.label}>Website</div>
                     <div className={styles.value}>{partner.website}</div>
                 </div>
+            </div>
+
+            {/* Tabs */}
+            <div className={styles.tabs}>
+                <button 
+                    className={`${styles.tab} ${activeTab === 'signature' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('signature')}
+                >
+                    Chữ ký
+                </button>
+                <button 
+                    className={`${styles.tab} ${activeTab === 'authorization' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('authorization')}
+                >
+                    UQ / Người đại diện PL
+                </button>
+                <button 
+                    className={`${styles.tab} ${activeTab === 'limit' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('limit')}
+                >
+                    QL hạn mức
+                </button>
+                <button 
+                    className={`${styles.tab} ${activeTab === 'asset' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('asset')}
+                >
+                    TSĐB
+                </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className={styles.tabContent}>
+                {activeTab === 'signature' && (
+                    <SignatureTab 
+                        partnerId={partner.id}
+                        isReadOnly={true}
+                    />
+                )}
+
+                {activeTab === 'authorization' && (
+                    <AuthorizationTab 
+                        partnerId={partner.id}
+                        isReadOnly={true}
+                    />
+                )}
+
+                {/* {activeTab === 'limit' && (
+                    <PartnerLimitTab 
+                        partnerId={partner.id}
+                        isReadOnly={true}
+                    />
+                )}
+
+                {activeTab === 'asset' && (
+                    <PartnerAssetTab 
+                        partnerId={partner.id}
+                        isReadOnly={true}
+                    />
+                )} */}
             </div>
             {/* Footer */}
             <div className={styles.footer}>

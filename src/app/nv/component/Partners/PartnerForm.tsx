@@ -349,14 +349,14 @@ export default function PartnerCreate({ onSuccess, mode, partner, onClose }: Man
                         <label>Trạng thái</label>
                         <select
                             name="status"
-                            value={formData.status || "ACTIVE"}
+                            value={formData.status || "Active"}
                             onChange={handleChange}
                             disabled={isReadOnly}
                             className={styles.select}
                         >
-                            <option value="ACTIVE">Hoạt động</option>
-                            <option value="PENDING">Chờ duyệt</option>
-                            <option value="INACTIVE">Không hoạt động</option>
+                            <option value="Active">Hoạt động</option>
+                            <option value="Pending">Chờ duyệt</option>
+                            <option value="Inactive">Không hoạt động</option>
                         </select>
                     </div>
                 </div>

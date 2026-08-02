@@ -91,20 +91,29 @@ export default function ManagePartner (){
         setIsModalOpen(true);
     }
 
-    const handleOpenEdit = (partner: PartnersItem) => {
-        setSelectPartner(partner);
+    const handleOpenEdit = () => {
+        if (!selectedPartner) {
+            alert('Vui lòng chọn một bản ghi để sửa!');
+            return;
+        }
         setModalMode('edit');
         setIsModalOpen(true);
     }
 
-    const handleOpenView = (partner: PartnersItem) => {
-        setSelectPartner(partner);
+    const handleOpenView = () => {
+        if (!selectedPartner) {
+            alert('Vui lòng chọn một bản ghi để xem!');
+            return;
+        }
         setModalMode('view');
         setIsModalOpen(true);
     }
 
-    const handleOpenApprove =(partner: PartnersItem) => {
-        setSelectPartner(partner);
+    const handleOpenApprove =() => {
+        if (!selectedPartner) {
+            alert('Vui lòng chọn một bản ghi để duyệt!');
+            return;
+        }
         setModalMode('approve');
         setIsModalOpen(true);
     }
@@ -155,19 +164,19 @@ export default function ManagePartner (){
                     <button>Thêm mới</button>
                 </div>
                 <div className={`${styles.itemAction} ${!selectedPartner ? styles.disabled : ''}`} 
-                    onClick={() => selectedPartner && handleOpenEdit(selectedPartner)}>
+                    onClick={handleOpenEdit}>
                     <Pen/>
                     <button>Sửa</button>
                 </div>
 
                 <div className={`${styles.itemAction} ${!selectedPartner ? styles.disabled : ''}`} 
-                    onClick={() => selectedPartner && handleOpenView(selectedPartner)}>
+                    onClick={handleOpenView}>
                     <Eye/>
                     <button>Xem</button>
                 </div>
 
                 <div className={`${styles.itemAction} ${!selectedPartner || selectedPartner.status !== 'Chờ duyệt' ? styles.disabled : ''}`} 
-                    onClick={() => selectedPartner && handleOpenApprove(selectedPartner)}>
+                    onClick={handleOpenApprove}>
                     <Check/>
                     <button>Duyệt</button>
                 </div>
