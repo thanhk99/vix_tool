@@ -3,7 +3,7 @@ import styles from "./SignatureTab.module.css";
 import apiClient from '@/lib/api/client';
 import { useNotification } from '@/hooks/useNotification';
 import Modal from "@/components/shared/Modal/Modal";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SignatureItem {
     id: string;
@@ -40,14 +40,14 @@ export default function SignatureTab ({ partnerId, isReadOnly = false }: Signatu
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 3;
 
-    const { notifySuccess, notifyError } = useNotification();
+    const { notifySuccess, notifyError, notifyWarning } = useNotification();
     const fetchSignatures = async () => {
         try {
             setLoading(true);
             const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/signatures`);
             setSignatures(res.data.data || res.data);
         } catch (error) {
-            notifyError('Không thể tải danh sách chữ ký');
+            notifyError('Lỗi', 'Không thể tải danh sách chữ ký');
         } finally {
             setLoading(false);
         }
@@ -59,6 +59,59 @@ export default function SignatureTab ({ partnerId, isReadOnly = false }: Signatu
             fetchSignatures();
         }
     }, [partnerId]);
+    
+    // ===== VERIFY =====
+    const validateForm = () => {
+        // 1. Tên file bắt buộc
+        if (!formData.fileName || formData.fileName.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Tên file!');
+            return false;
+        }
+
+        // 2. Loại chữ ký bắt buộc
+        if (!formData.signatureType) {
+            notifyWarning('Cảnh báo', 'Vui lòng chọn Loại chữ ký!');
+            return false;
+        }
+
+        // 3. Kiểm tra file (nếu là chế độ tạo mới hoặc sửa)
+        if (modalMode !== 'view') {
+            if (!uploadedFile && !formData.fileUrl) {
+                notifyWarning('Cảnh báo', 'Vui lòng tải lên file chữ ký!');
+                return false;
+            }
+
+            // 4. Kiểm tra định dạng file (nếu có file mới)
+            if (uploadedFile) {
+                const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+                if (!validTypes.includes(uploadedFile.type)) {
+                    notifyError('Lỗi định dạng', 'Chỉ hỗ trợ file JPG, PNG, PDF!');
+                    return false;
+                }
+                if (uploadedFile.size > 5 * 1024 * 1024) {
+                    notifyError('Lỗi kích thước', 'File không được vượt quá 5MB!');
+                    return false;
+                }
+            }
+        }
+
+        // 5. Ngày hiệu lực và ngày hết hạn
+        if (formData.effectiveDate && formData.expiryDate) {
+            if (formData.expiryDate < formData.effectiveDate) {
+                notifyError('Lỗi ngày tháng', 'Ngày hết hạn phải sau Ngày hiệu lực!');
+                return false;
+            }
+        }
+
+        // 6. Kiểm tra trạng thái
+        const validStatuses = ['Active', 'Pending', 'Expired'];
+        if (formData.status && !validStatuses.includes(formData.status)) {
+            notifyError('Lỗi', 'Trạng thái không hợp lệ!');
+            return false;
+        }
+
+        return true;
+    };
 
     const totalPage = Math.ceil(signatures.length / pageSize);
     const startIndex = (currentPage - 1) * pageSize + 1;
@@ -70,14 +123,17 @@ export default function SignatureTab ({ partnerId, isReadOnly = false }: Signatu
 
     const handleOpenCreate = () => {
         setModalMode('create');
-        setFormData({});
+        setFormData({ status: 'Active'});
         setUploadedFile(null);
         setPreviewUrl(null);
         setIsModalOpen(true);
     };
 
     const handleOpenEdit = (signature: SignatureItem) => {
-        if (isReadOnly) return;
+        if (isReadOnly) {
+            notifyWarning('Cảnh báo', 'Bạn không có quyền sửa!');
+            return;
+        }
         setModalMode('edit');
         setSelectedSignature(signature);
         setFormData(signature);
@@ -126,12 +182,12 @@ export default function SignatureTab ({ partnerId, isReadOnly = false }: Signatu
             // Kiểm tra định dạng
             const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
             if (!validTypes.includes(file.type)) {
-                notifyError('Chỉ hỗ trợ JPG, PNG, PDF');
+                notifyError('Lỗi định dạng', 'Chỉ hỗ trợ JPG, PNG, PDF');
                 return;
             }
             // Kiểm tra kích thước (5MB)
             if (file.size > 5 * 1024 * 1024) {
-                notifyError('File không được quá 5MB');
+                notifyError('Lỗi kích thước', 'File không được quá 5MB');
                 return;
             }
             setUploadedFile(file);
@@ -155,6 +211,10 @@ export default function SignatureTab ({ partnerId, isReadOnly = false }: Signatu
         setFormData(prev => ({ ...prev, fileName: '' }));
     };
     const handleSave = async () => {
+        if (!validateForm()) {
+            return;
+        }
+        setLoading(true);
         try {
             const submitData = { ...formData };
             if (uploadedFile) {
@@ -163,29 +223,38 @@ export default function SignatureTab ({ partnerId, isReadOnly = false }: Signatu
             
             if (modalMode === 'create') {
                 await apiClient.post(`/v1/capital-source/partners/${partnerId}/signatures`, submitData);
-                notifySuccess('Thêm mới thành công');
+                notifySuccess('Thành công', 'Thêm mới chữ ký thành công!');
             } else if (modalMode === 'edit' && selectedSignature) {
                 await apiClient.put(`/v1/capital-source/partners/${partnerId}/signatures/${selectedSignature.id}`, submitData);
-                notifySuccess('Cập nhật thành công');
+                notifySuccess('Thành công', 'Cập nhật chữ ký thành công!');
             }
             setIsModalOpen(false);
             fetchSignatures();
-        } catch (error) {
-            notifyError('Có lỗi xảy ra');
+        } catch (error:any) {
+            console.error(error);
+            notifyError('Lỗi', error.response?.data?.message || 'Có lỗi xảy ra!');
         }
     };
 
     const handleDelete = async (signature: SignatureItem) => {
-        if (!confirm('Xóa chữ ký này?')) return;
+        if (!confirm(`Bạn có chắc muốn xóa chữ ký "${signature.fileName}"?`)) {
+            return;
+        }
             try {
                 await apiClient.delete(`/v1/capital-source/partners/${partnerId}/signatures/${signature.id}`);
-                notifySuccess('Xóa thành công');
+                notifySuccess('Thành công', 'Xóa chữ ký thành công!');
                 fetchSignatures();
             } catch (error) {
-                notifyError('Có lỗi xảy ra khi xóa');
+                console.error(error);
+                notifyError('Lỗi', 'Có lỗi xảy ra khi xóa!');
             }
-        };
-        const getStatusBadge = (status: string) => {
+    };
+
+    const handleRowClick = (item: SignatureItem) => {
+        setSelectedSignature(item);
+    };
+
+    const getStatusBadge = (status: string) => {
         const map = {
             Active: styles.statusActive,
             Expired: styles.statusExpired,
@@ -229,7 +298,7 @@ export default function SignatureTab ({ partnerId, isReadOnly = false }: Signatu
                     </thead>
                     <tbody>
                         {paginatedData.map((item, index) => (
-                            <tr key={item.id} onClick={() => setSelectedSignature(item)}>
+                            <tr key={item.id} onClick={() =>  handleRowClick(item)}>
                                 <td>{(currentPage - 1) * pageSize + index + 1}</td>
                                 <td>{item.fileName}</td>
                                 <td>{item.signatureType}</td>

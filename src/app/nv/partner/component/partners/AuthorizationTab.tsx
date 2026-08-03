@@ -3,6 +3,7 @@ import styles from "./AuthorizationTab.module.css";
 import { useEffect, useState } from "react";
 import apiClient from "@/lib/api/client";
 import Modal from "@/components/shared/Modal/Modal";
+import { useNotification } from "@/hooks/useNotification";
 
 interface AuthorizationItemProps {
     partnerId: string;
@@ -18,6 +19,7 @@ export default function AuthorizationTab({ partnerId, isReadOnly = false }: Auth
     const [selectedAuth, setSelectedAuth] = useState<AuthorizationItem | null>(null);
     const [formData, setFormData] = useState<Partial<AuthorizationItem>>({});
     const [loadingSave, setLoadingSave] = useState(false);
+    const { notifySuccess, notifyError, notifyWarning, notifyInfo } = useNotification();
 
     const fetchDataAuthor = async () => {
         try {
@@ -26,6 +28,7 @@ export default function AuthorizationTab({ partnerId, isReadOnly = false }: Auth
         } catch (error: any) {
             console.error(error);
             setError(error.message || 'Có lỗi xảy ra!');
+            notifyError('Lỗi', 'Không thể tải danh sách ủy quyền!');
         } finally {
             setLoading(false);
         }
@@ -36,6 +39,87 @@ export default function AuthorizationTab({ partnerId, isReadOnly = false }: Auth
             fetchDataAuthor();
         }
     }, [partnerId]);
+
+    // ===== VERIFY =====
+    const validateForm = () => {
+        // 1. Trường bắt buộc
+        if (!formData.authName || formData.authName.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Tên người ủy quyền!');
+            return false;
+        }
+        if (!formData.authidNo || formData.authidNo.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập CCCD người ủy quyền!');
+            return false;
+        }
+        if (!formData.authissueDate) {
+            notifyWarning('Cảnh báo', 'Vui lòng chọn Ngày cấp người ủy quyền!');
+            return false;
+        }
+        if (!formData.authedName || formData.authedName.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Tên người được ủy quyền!');
+            return false;
+        }
+        if (!formData.authedIdNo || formData.authedIdNo.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập CCCD người được ủy quyền!');
+            return false;
+        }
+        if (!formData.authNo || formData.authNo.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Số giấy tờ ủy quyền!');
+            return false;
+        }
+        if (!formData.effDate) {
+            notifyWarning('Cảnh báo', 'Vui lòng chọn Ngày hiệu lực!');
+            return false;
+        }
+        if (!formData.expiryDate) {
+            notifyWarning('Cảnh báo', 'Vui lòng chọn Ngày hết hạn!');
+            return false;
+        }
+
+        // 2. CCCD (12 số)
+        const cccdRegex = /^[0-9]{12}$/;
+        if (formData.authidNo && !cccdRegex.test(formData.authidNo)) {
+            notifyError('Lỗi định dạng', 'CCCD người ủy quyền phải là 12 chữ số!');
+            return false;
+        }
+        if (formData.authedIdNo && !cccdRegex.test(formData.authedIdNo)) {
+            notifyError('Lỗi định dạng', 'CCCD người được ủy quyền phải là 12 chữ số!');
+            return false;
+        }
+
+        // 3. Email (nếu có)
+        if (formData.email && formData.email.trim() !== '') {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(formData.email)) {
+                notifyError('Lỗi định dạng', 'Email không đúng định dạng! (VD: example@domain.com)');
+                return false;
+            }
+        }
+
+        // 4. Số điện thoại (nếu có)
+        if (formData.phone && formData.phone.trim() !== '') {
+            const phoneRegex = /^[0-9]{10,11}$/;
+            if (!phoneRegex.test(formData.phone)) {
+                notifyError('Lỗi định dạng', 'Số điện thoại phải là 10-11 chữ số!');
+                return false;
+            }
+        }
+
+        // 5. Ngày hết hạn phải sau ngày hiệu lực
+        if (formData.effDate && formData.expiryDate && formData.expiryDate < formData.effDate) {
+            notifyError('Lỗi ngày tháng', 'Ngày hết hạn phải sau Ngày hiệu lực!');
+            return false;
+        }
+
+        // 6. Kiểm tra trạng thái
+        const validStatuses = ['Active', 'Pending', 'Expired'];
+        if (formData.status && !validStatuses.includes(formData.status)) {
+            notifyError('Lỗi', 'Trạng thái không hợp lệ!');
+            return false;
+        }
+
+        return true;
+    };
 
     // Mở modal
     const handleOpenCreate = () => {
@@ -50,10 +134,13 @@ export default function AuthorizationTab({ partnerId, isReadOnly = false }: Auth
 
     const handleOpenEdit = () => {
         if (!selectedAuth) {
-            alert('Vui lòng chọn một bản ghi để sửa!');
+            notifyWarning('Cảnh báo', 'Vui lòng chọn một bản ghi để sửa!');
             return;
         }
-        if (isReadOnly) return;
+        if (isReadOnly){
+            notifyWarning('Cảnh báo', 'Bạn không có quyền sửa!');
+            return;
+        };
         setModalMode('edit');
         setFormData(selectedAuth);
         setIsModalOpen(true);
@@ -61,7 +148,7 @@ export default function AuthorizationTab({ partnerId, isReadOnly = false }: Auth
 
     const handleOpenView = () => {
         if (!selectedAuth) {
-            alert('Vui lòng chọn một bản ghi để xem!');
+            notifyWarning('Cảnh báo', 'Vui lòng chọn một bản ghi để xem!');
             return;
         }
         setModalMode('view');
@@ -71,22 +158,25 @@ export default function AuthorizationTab({ partnerId, isReadOnly = false }: Auth
 
     const handleDelete = async () => {
         if (!selectedAuth) {
-            alert('Vui lòng chọn một bản ghi để xóa!');
+            notifyWarning('Cảnh báo', 'Vui lòng chọn một bản ghi để xóa!');
             return;
         }
-        if (isReadOnly) return;
+        if (isReadOnly){
+            notifyWarning('Cảnh báo', 'Bạn không có quyền xóa!');
+            return;
+        }
         if (!confirm(`Bạn có chắc muốn xóa ủy quyền của "${selectedAuth.authName}"?`)) {
             return;
         }
 
         try {
             await apiClient.delete(`/v1/capital-source/partners/${partnerId}/authorizations/${selectedAuth.id}`);
-            alert('Xóa thành công!');
+            notifySuccess('Thành công', 'Xóa ủy quyền thành công!');
             setSelectedAuth(null);
             fetchDataAuthor();
         } catch (error) {
             console.error(error);
-            alert('Có lỗi xảy ra khi xóa!');
+            notifyError('Lỗi', 'Có lỗi xảy ra khi xóa!');
         }
     };
 
@@ -101,7 +191,10 @@ export default function AuthorizationTab({ partnerId, isReadOnly = false }: Auth
         if (!formData.authName || !formData.authidNo || !formData.authissueDate ||
             !formData.authedName || !formData.authedIdNo || !formData.authedIssueDate ||
             !formData.issuePlace || !formData.authNo || !formData.effDate || !formData.expiryDate) {
-            alert('Vui lòng nhập đầy đủ các trường bắt buộc!');
+            notifyWarning('Vui lòng nhập đầy đủ các trường bắt buộc!');
+            return;
+        }
+        if (!validateForm()) {
             return;
         }
 
@@ -130,18 +223,18 @@ export default function AuthorizationTab({ partnerId, isReadOnly = false }: Auth
 
             if (modalMode === 'create') {
                 await apiClient.post(`/v1/capital-source/partners/${partnerId}/authorizations`, submitData);
-                alert('Thêm mới ủy quyền thành công!');
+                notifySuccess('Thành công', 'Thêm mới ủy quyền thành công!');
             } else if (modalMode === 'edit' && selectedAuth) {
                 await apiClient.put(`/v1/capital-source/partners/${partnerId}/authorizations/${selectedAuth.id}`, submitData);
-                alert('Cập nhật ủy quyền thành công!');
+                notifySuccess('Thành công', 'Cập nhật ủy quyền thành công!');
             }
 
             setIsModalOpen(false);
             setSelectedAuth(null);
             fetchDataAuthor();
-        } catch (error) {
+        } catch (error:any) {
             console.error(error);
-            alert('Có lỗi xảy ra!');
+            notifyError('Lỗi', error.response?.data?.message || 'Có lỗi xảy ra!');
         } finally {
             setLoadingSave(false);
         }

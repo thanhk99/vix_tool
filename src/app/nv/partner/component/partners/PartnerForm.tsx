@@ -4,6 +4,7 @@ import { PartnersItem } from "@/types/funding.types";
 import { useEffect, useState } from "react";
 import styles from "./PartnerForm.module.css";
 import apiClient from "@/lib/api/client";
+import { useNotification } from "@/hooks/useNotification";
 
 interface ManagePartnerProps {
     onSuccess: () => void;
@@ -14,6 +15,7 @@ interface ManagePartnerProps {
 
 export default function PartnerCreate({ onSuccess, mode, partner, onClose }: ManagePartnerProps) {
     const [loading, setLoading] = useState(false);
+    const { notifySuccess, notifyError, notifyWarning, notifyInfo } = useNotification();
     const defaultFormData: PartnersItem = {
         cusId: "",
         branchCusId: "",
@@ -65,8 +67,91 @@ export default function PartnerCreate({ onSuccess, mode, partner, onClose }: Man
         }
 
         // Validation
-        if (!formData.cusId || !formData.cusName  || !formData.idCode) {
-            alert('Vui lòng nhập Mã KH và Tên KH');
+        // 1.1 Mã KH - Bắt buộc
+        if (!formData.cusId || formData.cusId.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Mã KH!');
+            return;
+        }
+
+        // 1.2 Tên KH - Bắt buộc
+        if (!formData.cusName || formData.cusName.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Tên KH!');
+            return;
+        }
+
+        // 1.3 Số ĐKKD/CCCD - Bắt buộc
+        if (!formData.idCode || formData.idCode.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Số ĐKKD/CCCD!');
+            return;
+        }
+        // 2.1 Email (nếu có)
+        if (formData.email && formData.email.trim() !== '') {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(formData.email)) {
+                notifyError('Lỗi định dạng', 'Email không đúng định dạng! (VD: example@domain.com)');
+                return;
+            }
+        }
+
+        // 2.2 Số điện thoại (nếu có)
+        if (formData.mobile && formData.mobile.trim() !== '') {
+            const phoneRegex = /^[0-9]{10,11}$/;
+            if (!phoneRegex.test(formData.mobile)) {
+                notifyError('Lỗi định dạng', 'Số điện thoại phải là 10-11 chữ số!');
+                return;
+            }
+        }
+
+        // 2.3 Website
+        if (formData.website && formData.website.trim() !== '') {
+            const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+            if (!urlRegex.test(formData.website)) {
+                notifyError('Lỗi định dạng', 'Website không đúng định dạng! (VD: www.example.com)');
+                return;
+            }
+        }
+
+        // 2.4 Số ĐKKD/CCCD - Kiểm tra độ dài (12 số)
+        if (formData.idCode) {
+            const cccdRegex = /^[0-9]{12}$/;
+            if (!cccdRegex.test(formData.idCode)) {
+                notifyError('Lỗi định dạng', 'Số ĐKKD/CCCD phải là 12 chữ số!');
+                return;
+            }
+        }
+
+        // 3.1 Ngày cấp cuối >= Ngày cấp lần đầu
+        if (formData.fistIssueDate && formData.lastIssueDate) {
+            if (formData.lastIssueDate < formData.fistIssueDate) {
+                notifyError('Lỗi ngày tháng', 'Ngày cấp cuối phải sau hoặc bằng Ngày cấp lần đầu!');
+                return;
+            }
+        }
+
+        // 3.2 Ngày bắt đầu CN <= Ngày kết thúc CN
+        if (formData.professionalStartDate && formData.professionalEndDate) {
+            if (formData.professionalEndDate < formData.professionalStartDate) {
+                notifyError('Lỗi ngày tháng', 'Ngày kết thúc CN phải sau Ngày bắt đầu CN!');
+                return;
+            }
+        }
+
+        // 4.1 Nếu là NĐT chuyên nghiệp, bắt buộc có ngày bắt đầu và kết thúc
+        if (formData.professionalInvestor) {
+            if (!formData.professionalStartDate) {
+                notifyWarning('Cảnh báo', 'Vui lòng nhập Ngày bắt đầu CN cho Nhà đầu tư chuyên nghiệp!');
+                return;
+            }
+            if (!formData.professionalEndDate) {
+                notifyWarning('Cảnh báo', 'Vui lòng nhập Ngày kết thúc CN cho Nhà đầu tư chuyên nghiệp!');
+                return;
+            }
+        }
+
+        // 4.2 Kiểm tra trạng thái
+        const validStatuses = ['Active', 'Pending', 'Inactive'];
+        if (formData.status && !validStatuses.includes(formData.status)) {
+            notifyError('Lỗi', 'Trạng thái không hợp lệ!');
             return;
         }
 
@@ -97,9 +182,11 @@ export default function PartnerCreate({ onSuccess, mode, partner, onClose }: Man
                 status: formData.status || 'Active',
             };
             await apiClient.post('/v1/capital-source/partners', dataToSend);
+            notifySuccess('Thành công', 'Thêm mới đối tác thành công!');
             onSuccess();
-        } catch (error) {
+        } catch (error:any) {
             console.error(error);
+            notifyError('Lỗi', error.response?.data?.message || 'Có lỗi xảy ra khi thêm mới!');
         } finally {
             setLoading(false);
         }

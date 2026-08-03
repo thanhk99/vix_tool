@@ -9,6 +9,7 @@ import Modal from "@/components/shared/Modal/Modal";
 import InformationPartner from "./InformationPartner";
 import Link from "next/link";
 import PartnerForm from "./PartnerForm";
+import { useNotification } from "@/hooks/useNotification";
 
 interface PartnersRespone {
     success: boolean;
@@ -25,6 +26,7 @@ export default function ManagePartner (){
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState('');         
     const [filteredPartners, setFilteredPartners] = useState<PartnersItem[]>([]); 
+    const { notifySuccess, notifyError, notifyWarning, notifyInfo } = useNotification();
     const pageSize = 10; 
     const totalPage = Math.ceil(filteredPartners.length / pageSize);
     const paginatedData = filteredPartners.slice(
@@ -56,9 +58,10 @@ export default function ManagePartner (){
             const sortData = sortPartners(data);
             setPartners(sortData);
             setFilteredPartners(sortData);
+            notifySuccess('Thành công', 'Đã tải danh sách đối tác!');
         } catch (error:any) {
             console.error(error);
-            setError(error.message || "Đã có lỗi xảy ra khi tải dữ liệu!");
+            notifyError('Lỗi', error.message || 'Không thể tải danh sách đối tác!'); 
         } finally {
             setLoading(false);
         }
@@ -84,6 +87,15 @@ export default function ManagePartner (){
         setCurrentPage(1);
     }, [search, partners]);
 
+    // ===== VERIFY =====
+    const validateSelectedPartner = () => {
+        if (!selectedPartner) {
+            notifyWarning('Cảnh báo', 'Vui lòng chọn một đối tác!');
+            return false;
+        }
+        return true;
+    };
+
     // Open modal
     const handleOpenCreate = () => {
         setModalMode('create');
@@ -92,26 +104,21 @@ export default function ManagePartner (){
     }
 
     const handleOpenEdit = () => {
-        if (!selectedPartner) {
-            alert('Vui lòng chọn một bản ghi để sửa!');
-            return;
-        }
+        if (!validateSelectedPartner()) return;
         setModalMode('edit');
         setIsModalOpen(true);
     }
 
     const handleOpenView = () => {
-        if (!selectedPartner) {
-            alert('Vui lòng chọn một bản ghi để xem!');
-            return;
-        }
+        if (!validateSelectedPartner()) return;
         setModalMode('view');
         setIsModalOpen(true);
     }
 
     const handleOpenApprove =() => {
-        if (!selectedPartner) {
-            alert('Vui lòng chọn một bản ghi để duyệt!');
+        if (!validateSelectedPartner()) return;
+        if (selectedPartner?.status !== 'Pending' && selectedPartner?.status !== 'Chờ duyệt') {
+            notifyWarning('Cảnh báo', 'Chỉ có thể duyệt đối tác ở trạng thái "Chờ duyệt"!');  
             return;
         }
         setModalMode('approve');
@@ -122,6 +129,7 @@ export default function ManagePartner (){
     const handleSave = async () => {
         await fetchPartners();
         setIsModalOpen(false);
+        notifySuccess('Thành công', 'Đã cập nhật danh sách đối tác!');
     }
 
     // Click Row
@@ -133,6 +141,7 @@ export default function ManagePartner (){
         fetchPartners();
         setSelectPartner(null);
         setSearch('');
+        notifySuccess('Làm mới', 'Đã cập nhật danh sách đối tác!');
     };
 
     if(loading) {

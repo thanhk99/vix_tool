@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
 import styles from "./page.module.css";
 import { UsersRound, X } from "lucide-react";
 import { PartnersItem } from "@/types/funding.types";
-import SignatureTab from "@/app/nv/component/Partners/SignatureTab";
-import AuthorizationTab from "@/app/nv/component/Partners/AuthorizationTab";
+import SignatureTab from "@/app/nv/partner/component/partners/SignatureTab";
+import AuthorizationTab from "@/app/nv/partner/component/partners/AuthorizationTab";
 
 export default function PartnerView() {
     const params = useParams();
