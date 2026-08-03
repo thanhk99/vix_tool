@@ -46,14 +46,103 @@ export default function PartnerEdit() {
         setFormData(prev => prev ? { ...prev, [name]: value } : null);
     };
 
+    // ===== VERIFY =====
+    const validateForm = () => {
+        // 1. Trường bắt buộc
+        if (!formData?.cusId || formData.cusId.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Mã KH!');
+            return false;
+        }
+        if (!formData?.cusName || formData.cusName.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Tên KH!');
+            return false;
+        }
+        if (!formData?.idCode || formData.idCode.trim() === '') {
+            notifyWarning('Cảnh báo', 'Vui lòng nhập Số ĐKKD/CCCD!');
+            return false;
+        }
+
+        // 2. Email (nếu có)
+        if (formData?.email && formData.email.trim() !== '') {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(formData.email)) {
+                notifyError('Lỗi định dạng', 'Email không đúng định dạng! (VD: example@domain.com)');
+                return false;
+            }
+        }
+
+        // 3. Số điện thoại (nếu có)
+        if (formData?.mobile && formData.mobile.trim() !== '') {
+            const phoneRegex = /^[0-9]{10,11}$/;
+            if (!phoneRegex.test(formData.mobile)) {
+                notifyError('Lỗi định dạng', 'Số điện thoại phải là 10-11 chữ số!');
+                return false;
+            }
+        }
+
+        // 4. Website (nếu có)
+        if (formData?.website && formData.website.trim() !== '') {
+            const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+            if (!urlRegex.test(formData.website)) {
+                notifyError('Lỗi định dạng', 'Website không đúng định dạng!');
+                return false;
+            }
+        }
+
+        // 5. CCCD (12 số)
+        if (formData?.idCode) {
+            const cccdRegex = /^[0-9]{12}$/;
+            if (!cccdRegex.test(formData.idCode)) {
+                notifyError('Lỗi định dạng', 'Số ĐKKD/CCCD phải là 12 chữ số!');
+                return false;
+            }
+        }
+
+        // 6. Ngày cấp cuối >= Ngày cấp đầu
+        if (formData?.fistIssueDate && formData?.lastIssueDate) {
+            if (formData.lastIssueDate < formData.fistIssueDate) {
+                notifyError('Lỗi ngày tháng', 'Ngày cấp cuối phải sau Ngày cấp lần đầu!');
+                return false;
+            }
+        }
+
+        // 7. Ngày bắt đầu CN <= Ngày kết thúc CN
+        if (formData?.professionalStartDate && formData?.professionalEndDate) {
+            if (formData.professionalEndDate < formData.professionalStartDate) {
+                notifyError('Lỗi ngày tháng', 'Ngày kết thúc CN phải sau Ngày bắt đầu CN!');
+                return false;
+            }
+        }
+
+        // 8. NĐT chuyên nghiệp
+        if (formData?.professionalInvestor) {
+            if (!formData.professionalStartDate) {
+                notifyWarning('Cảnh báo', 'Vui lòng nhập Ngày bắt đầu CN cho Nhà đầu tư chuyên nghiệp!');
+                return false;
+            }
+            if (!formData.professionalEndDate) {
+                notifyWarning('Cảnh báo', 'Vui lòng nhập Ngày kết thúc CN cho Nhà đầu tư chuyên nghiệp!');
+                return false;
+            }
+        }
+
+        // 9. Trạng thái
+        const validStatuses = ['Active', 'Pending', 'Inactive'];
+        if (formData?.status && !validStatuses.includes(formData.status)) {
+            notifyError('Lỗi', 'Trạng thái không hợp lệ!');
+            return false;
+        }
+
+        return true;
+    };
+
     // Save data
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if(!formData) return;
 
-        //Validate
-        if(!formData.cusId || !formData.cusName || !formData.idCode) {
-            notifyError('Vui lòng nhập đầy đủ thông tin!');
+        // Verify
+        if (!validateForm()) {
             return;
         }
         setSaving(true);
@@ -83,10 +172,10 @@ export default function PartnerEdit() {
             };
 
             await apiClient.put(`/v1/capital-source/partners/${formData.cusId}`, submitData);
-            notifySuccess('Cập nhật thành công!')
+            notifySuccess('Thành công', 'Cập nhật đối tác thành công!');
             router.push(`/nv/partners/view/${id}`);
-        } catch(error){
-            notifyError("Có lỗi xảy ra khi cập nhật!")
+        } catch(error:any){
+            notifyError('Lỗi', error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật!');
             console.error(error);
         } finally {
             setSaving(false);

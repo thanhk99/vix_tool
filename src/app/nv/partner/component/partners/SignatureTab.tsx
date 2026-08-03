@@ -43,7 +43,6 @@ export default function SignatureTab ({ partnerId, isReadOnly = false }: Signatu
     const { notifySuccess, notifyError, notifyWarning } = useNotification();
     const fetchSignatures = async () => {
         try {
-            setLoading(true);
             const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/signatures`);
             setSignatures(res.data.data || res.data);
         } catch (error) {
@@ -271,6 +270,9 @@ export default function SignatureTab ({ partnerId, isReadOnly = false }: Signatu
         };
         return map[status as keyof typeof map] || status;
     };
+    if (loading) {
+        return <div className={styles.loading}>Đang tải dữ liệu...</div>;
+    }
     return (
         <div className={styles.container}>
             <div className={styles.title}>

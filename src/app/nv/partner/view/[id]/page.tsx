@@ -9,6 +9,7 @@ import { UsersRound, X } from "lucide-react";
 import { PartnersItem } from "@/types/funding.types";
 import SignatureTab from "@/app/nv/partner/component/partners/SignatureTab";
 import AuthorizationTab from "@/app/nv/partner/component/partners/AuthorizationTab";
+import { useNotification } from "@/hooks/useNotification";
 
 export default function PartnerView() {
     const params = useParams();
@@ -18,6 +19,7 @@ export default function PartnerView() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'asset' | 'limit'>('signature');
+    const { notifyError } = useNotification();
 
     useEffect(() => {
         const fetchPartner = async() => {
@@ -26,6 +28,7 @@ export default function PartnerView() {
                 setPartner(res.data.data || res.data)
             } catch (error) {
                 setError('Không thể tải thông tin.');
+                notifyError('Lỗi', 'Không thể tải thông tin đối tác!');
                 console.error(error);
             } finally {
                 setLoading(false);
@@ -33,6 +36,11 @@ export default function PartnerView() {
         };
         if(id) fetchPartner();
     }, [id]);
+
+    // VERIFY: Kiểm tra dữ liệu partner
+    if (!loading && !error && !partner) {
+        notifyError('Lỗi', 'Không tìm thấy đối tác!');
+    }
 
     if (loading) return <div className={styles.loading}>Đang tải dữ liệu...</div>;
     if (error) return <div className={styles.error}>{error}</div>;
