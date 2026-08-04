@@ -10,18 +10,24 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    // We are in browser context
-    if (typeof window !== 'undefined') {
-      const token = useAuthStore.getState().token;
+    if (typeof window !== "undefined") {
+      const { token, deptId } = useAuthStore.getState();
+
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers.set(
+          "Authorization",
+          `Bearer ${token}`
+        );
       }
 
-      const deptId = useAuthStore.getState().deptId;
       if (deptId) {
-        config.headers['X-Department-Id'] = deptId;
+        config.headers.set(
+          "X-Department-Id",
+          deptId
+        );
       }
     }
+
     return config;
   },
   (error) => {

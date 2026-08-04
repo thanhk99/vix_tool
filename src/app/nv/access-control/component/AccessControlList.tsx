@@ -1,173 +1,259 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './AccessControlList.module.css';
-import Button from '@/components/shared/Button/Button'; // Dùng lại component button đã có
-import Table from '@/components/shared/Table/Table'; // Dùng lại component table đã có
+import Button from '@/components/shared/Button/Button';
+import Table from '@/components/shared/Table/Table';
 import PermissionForm from './PermissionForm';
+import apiClient from '@/lib/api/client';
+import { ActionCode, CreateRoleGroupRequest, ResourceCode, RoleGroupResponse } from '@/types/permission.types';
+import { useNotification } from '@/hooks/useNotification';
 
 export default function AccessControlList() {
-  const [users, setUsers] = useState([
-    { id: 1, name: 'Nguyễn Văn A', email: 'nguyen.van.a@example.com', role: 'Admin' },
-    { id: 2, name: 'Trần Thị B', email: 'tran.thi.b@example.com', role: 'User' },
-    { id: 3, name: 'Lê Văn C', email: 'le.van.c@example.com', role: 'Editor' },
-  ]);
+    const [roleGroups, setRoleGroups] = useState<RoleGroupResponse[]>([]);
+    const [loading, setLoading] = useState(false);
+    const { notifyWarning, notifySuccess, notifyError } = useNotification();
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showPermissionModal, setShowPermissionModal] = useState(false);
+    const [selectedRoleGroup, setSelectedRoleGroup] = useState<RoleGroupResponse | null>(null);
+    const [formData, setFormData] = useState<CreateRoleGroupRequest>({
+        name: "",
+        description: "",
+        permissions: [
+          {
+            resource: ResourceCode.DASHBOARD,
+            actions: [ActionCode.VIEW],
+          }
+        ],
+        active: true,
+    });
 
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    role: 'User'
-  });
+    // ==========================
+    // GET ROLE GROUPS
+    // ==========================
+    const fetchRoleGroups = async () => {
+        try {
+            setLoading(true);
+            const res = await apiClient.get('/v1/permissions/role-groups');
+            setRoleGroups(res.data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  // Trạng thái để điều khiển việc hiển thị modal thêm
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showPermissionModal, setShowPermissionModal] = useState(false);
-  const [selectedResource, setSelectedResource] = useState<string | null>(null);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+    useEffect(() => {
+        fetchRoleGroups();
+    }, []);
 
-  const handleAddUser = () => {
-    if (newUser.name && newUser.email) {
-      const user = {
-        id: users.length + 1,
-        ...newUser
-      };
-      setUsers([...users, user]);
-      setNewUser({ name: '', email: '', role: 'User' });
-      setShowAddModal(false); // Sau khi thêm xong thì đóng modal
+    // ==========================
+    // MODAL
+    // ==========================
+
+    const handleShowAddModal = () => {
+        setShowAddModal(true);
+    };
+
+    const handleCloseModal = () => {
+      setShowAddModal(false);
+      setFormData({
+          name: "",
+          description: "",
+          permissions: [
+            {
+                resource: ResourceCode.DASHBOARD,
+                actions: [ActionCode.VIEW],
+            }
+          ],
+          active: true,
+      });
+    };
+
+    const handleOpenPermissionModal = (
+        roleGroup: RoleGroupResponse
+    ) => {
+        setSelectedRoleGroup(roleGroup);
+        setShowPermissionModal(true);
+    };
+
+    const handleClosePermissionModal = () => {
+        setSelectedRoleGroup(null);
+        setShowPermissionModal(false);
+    };
+
+    // Xu ly thay doi
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+      const {name, value} = e.target;
+      setFormData((prev) => ({
+        ...prev, [name]:value
+      }))
     }
-  };
 
-  const handleShowAddModal = () => {
-    setShowAddModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowAddModal(false);
-    setNewUser({ name: '', email: '', role: 'User' });
-  };
-
-  // Handle opening permission form for a specific resource
-  const handleOpenPermissionForm = (resource: string) => {
-    setSelectedResource(resource);
-    setShowPermissionModal(true);
-  };
-
-  const handleClosePermissionModal = () => {
-    setShowPermissionModal(false);
-    setSelectedResource(null);
-    setSelectedUser(null);
-  };
-
-  // Handle opening permission form for a specific user
-  const handleOpenUserPermissionModal = (user: any) => {
-    setSelectedUser(user);
-    setShowPermissionModal(true);
-  };
-
-  // Định nghĩa các cột cho table
-  const columns = [
-    {
-      key: 'id',
-      title: 'ID',
-      width: '50px'
-    },
-    {
-      key: 'name',
-      title: 'Tên'
-    },
-    {
-      key: 'email',
-      title: 'Email'
-    },
-    {
-      key: 'role',
-      title: 'Vai Trò'
-    },
-    {
-      key: 'actions',
-      title: 'Hành Động',
-      width: '150px',
-      render: (row: any) => (
-        <div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleOpenUserPermissionModal(row)}
-          >
-            Sửa
-          </Button>
-          <Button variant="secondary" size="sm">Vô hiệu</Button>
-        </div >
-      )
+    const handleActive = (checked:boolean) => {
+      setFormData((prev) => ({...prev, active:checked}))
     }
-  ];
 
-  // Resources that will have permission forms
-  const resourcePermissions = [
-    { name: 'Danh mục và Cấu hình', resource: 'CAPITAL_CONFIG' },
-    { name: 'Quản lý Khế ước Nhận Nợ', resource: 'CAPITAL_CONTRACT' },
-    { name: 'Quản lý Sự kiện Trả Nợ', resource: 'CAPITAL_REPAYMENT' },
-    { name: 'Quản lý Hạn mức tín dụng', resource: 'CAPITAL_PARTNER_LIMIT' },
-    { name: 'Quản lý Giao dịch tài sản', resource: 'CAPITAL_ASSET' },
-    { name: 'Liên kết KUNN với giao dịch/tài sản', resource: 'CAPITAL_ASSET' },
-    { name: 'Import Excel', resource: 'CAPITAL_BATCH' },
-    { name: 'Export Excel', resource: 'CAPITAL_REPORT' },
-    { name: 'Lịch sử thay đổi', resource: 'AUDIT_LOG' },
-  ];
+    // Validate
+    const validate = () => {
+      if(!formData.name.trim()) {
+        notifyWarning("Cảnh báo", "Tên nhóm quyền không được để trống!"); return false
+      }
+      return true;
+    }
 
-  return (
-    <div className={styles.accessControl}>
+    // POST 
+    const handleCreateRoleGroup = async () => {
+      if(!validate()) return;
+      try {
+        await apiClient.post("/v1/permissions/role-groups", formData);
+        notifySuccess("Thành công", "Tạo nhóm quyền thành công!");
+        fetchRoleGroups();
+        handleCloseModal();
+      } catch (error) {
+        notifyError("Lỗi", "Không thể tạo nhóm quyền!")
+      }
+    }
+    // ==========================
+    // TABLE
+    // ==========================
 
-      {/* Modal thêm người dùng */}
-      {showAddModal && (
-        <div className={styles.modalOverlay} onClick={handleCloseModal}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3>Thêm Người Dùng Mới</h3>
-            <div className={styles.addUserForm}>
-              <input
-                type="text"
-                placeholder="Tên người dùng"
-                value={newUser.name}
-                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                className={styles.input}
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={newUser.email}
-                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                className={styles.input}
-              />
-              <select
-                value={newUser.role}
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                className={styles.select}
-              >
-                <option value="User">Người Dùng</option>
-                <option value="Editor">Biên Tập Viên</option>
-                <option value="Admin">Quản Trị Viên</option>
-              </select>
+    const columns = [
+        {
+            key: 'name',
+            title: 'Tên nhóm quyền',
+        },
+        {
+            key: 'description',
+            title: 'Mô tả',
+        },
+        {
+            key: 'isActive',
+            title: 'Trạng thái',
+            render: (value: unknown,
+                    row: RoleGroupResponse,
+                    rowIndex: number) =>
+                row.isActive ? 'Hoạt động' : 'Ngừng hoạt động',
+        },
+        {
+            key: 'actions',
+            title: 'Hành động',
+            render: (value: unknown,
+                    row: RoleGroupResponse,
+                    rowIndex: number) => (
+                <div className={styles.actionButtons}>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                            handleOpenPermissionModal(row)
+                        }
+                    >
+                        Sửa
+                    </Button>
+
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                    >
+                        Xóa
+                    </Button>
+                </div>
+            ),
+        },
+    ];
+
+    return (
+        <div className={styles.container}>
+            <div className={styles.header}>
+                <Button onClick={handleShowAddModal}>
+                    Thêm nhóm quyền
+                </Button>
             </div>
-          </div>
+
+            <div className={styles.tableContainer}>
+                <Table
+                    columns={columns}
+                    data={roleGroups}
+                    rowKey="id"
+                    isLoading={loading}
+                />
+            </div>
+
+            {/* Modal thêm nhóm quyền */}
+            {showAddModal && (
+                <div
+                    className={styles.modalOverlay}
+                    onClick={handleCloseModal}
+                >
+                    <div
+                        className={styles.modalContent}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3>Thêm nhóm quyền</h3>
+
+                        <div className={styles.formGroup}>
+                            <label>Tên nhóm quyền</label>
+
+                            <input
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                            />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label>Mô tả</label>
+
+                            <textarea
+                                name="description"
+                                rows={4}
+                                value={formData.description}
+                                onChange={handleChange}
+                            />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label>Trạng thái</label>
+
+                            <div className={styles.checkbox}>
+                                <input
+                                    type="checkbox"
+                                    checked={formData.active}
+                                    onChange={(e) =>
+                                        handleActive(e.target.checked)
+                                    }
+                                />
+
+                                <span>Hoạt động</span>
+                            </div>
+                        </div>
+                        <div className={styles.modalFooter}>
+                          <Button
+                              variant="secondary"
+                              onClick={handleCloseModal}
+                          >
+                              Hủy
+                          </Button>
+
+                          <Button
+                              onClick={handleCreateRoleGroup}
+                          >
+                              Lưu
+                          </Button>
+                      </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal chỉnh sửa quyền */}
+            {showPermissionModal && selectedRoleGroup && (
+                <PermissionForm
+                    isOpen={showPermissionModal}
+                    onClose={handleClosePermissionModal}
+                    departmentId={selectedRoleGroup.deptId}
+                />
+            )}
         </div>
-      )}
-
-      {/* Modal chỉnh sửa quyền */}
-      {showPermissionModal && (
-        <PermissionForm
-          isOpen={showPermissionModal}
-          onClose={handleClosePermissionModal}
-          departmentId="NV" // In a real app, this would come from user context or session
-        />
-      )}
-
-      <div className={styles.tableContainer}>
-        <Table
-          columns={columns}
-          data={users}
-          rowKey="id"
-        />
-      </div>
-    </div>
-  );
+    );
 }

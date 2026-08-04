@@ -41,3 +41,10 @@ export interface RoleGroupResponse {
   updatedAt: string;
   permissions: PermissionDto[];
 }
+
+export interface CreateRoleGroupRequest {
+    name: string;
+    description: string;
+    permissions: PermissionDto[];
+    active: boolean;
+}
