@@ -1,0 +1,162 @@
+.container {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+}
+
+.table thead {
+  background: var(--background);
+}
+
+.table th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.table tbody tr:hover {
+  background: var(--background);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.username {
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary);
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 2px var(--space-3);
+  border-radius: 20px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.statusActive {
+  background: #D1FAE5;
+  color: #059669;
+}
+
+.statusInactive {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+/* Action buttons container */
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Base action button */
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  height: 32px;
+  min-width: 32px;
+  white-space: nowrap;
+}
+
+/* Disable state */
+.actionBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.actionBtn:disabled:hover {
+  background: transparent;
+  color: var(--text-secondary);
+  transform: none;
+}
+
+/* View button - Eye */
+.actionBtnView {
+  color: var(--primary);
+}
+
+.actionBtnView:hover:not(:disabled) {
+  background: #DBEAFE;
+  color: #1D4ED8;
+  transform: scale(1.05);
+}
+
+/* Edit button - Pen */
+.actionBtnEdit {
+  color: #F59E0B;
+}
+
+.actionBtnEdit:hover:not(:disabled) {
+  background: #FEF3C7;
+  color: #D97706;
+  transform: scale(1.05);
+}
+
+/* Disable button - Ban */
+.actionBtnDisable {
+  border: 1px solid var(--border);
+}
+
+.actionBtnDisableActive:hover:not(:disabled) {
+  border: 1px solid var(--danger);
+  color: var(--danger)
+}
+
+.actionBtnDisableInactive:hover:not(:disabled) {
+  border: 1px solid var(--success);
+  color: var(--success);
+}
+
+/* Action button with icon + text */
+.actionBtnWithIcon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.actionBtnWithIcon svg {
+  width: 14px;
+  height: 14px;
+}
