@@ -45,4 +45,23 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Add a request interceptor to log requests for debugging
+apiClient.interceptors.request.use(
+  (config) => {
+    // For debugging purposes only - remove in production
+    if (process.env.NODE_ENV === 'development') {
+      console.log('API Request:', {
+        url: config.url,
+        method: config.method,
+        headers: config.headers,
+        data: config.data,
+      });
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;

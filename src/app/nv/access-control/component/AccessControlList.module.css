@@ -1,0 +1,253 @@
+.accessControl {
+  padding: var(--spacing-lg);
+  background-color: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.header h2 {
+  font-size: var(--font-size-xl);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.addUserForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  align-items: end;
+}
+
+.input, .select {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.table th,
+.table td {
+  padding: var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  background-color: var(--color-bg-secondary);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table tr:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.permissionSection {
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.resourcesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.resourceCard {
+  padding: var(--spacing-lg);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.resourceCard h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+.permissionForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.actionList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.actionItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.formFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  margin-top: auto;
+}
+
+.loading {
+  text-align: center;
+  padding: var(--spacing-lg);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  padding: var(--spacing-md);
+  background-color: var(--color-error-light);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  color: var(--color-error-dark);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Matrix Permission Form Styles */
+.matrixPermissionForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.matrixContainer {
+  overflow-x: auto;
+  max-height: 60vh;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs);
+}
+
+.permissionMatrixTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.resourceHeader {
+  position: sticky;
+  left: 0;
+  background-color: var(--color-bg-secondary);
+  z-index: 2;
+  border-right: 1px solid var(--color-border);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-weight: 600;
+  text-align: center;
+}
+
+.actionHeader {
+  background-color: var(--color-bg-secondary);
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: center;
+}
+
+.resourceHeaderContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.selectAllButton {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  background-color: var(--color-primary-light);
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--color-primary-dark);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.selectAllButton:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.actionCell {
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-align: center;
+  font-weight: 500;
+  background-color: var(--color-bg-secondary);
+  border-right: 1px solid var(--color-border);
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.cell {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: center;
+  vertical-align: middle;
+  min-width: 80px;
+}
+
+.checkboxLabelMatrix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.checkboxMatrix {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}

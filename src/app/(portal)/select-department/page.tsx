@@ -14,18 +14,30 @@ export default function SelectDepartmentPage() {
     // Because authApi.login returns them, we should pass them via context/state.
     // For simplicity, assume we can fetch user profile or it's stored.
     // This is a placeholder since the backend returns departments during login.
+
+    // Debug: Log what departments are available in local storage after login
+    console.log('Checking for departments in localStorage...');
+    const token = useAuthStore.getState().token;
+    if (token) {
+      console.log('Token found:', token.substring(0, 20) + '...');
+    }
   }, []);
 
   const handleSelect = async (deptId: string) => {
     try {
+      console.log('Attempting to select department:', deptId);
       const res = await authApi.selectDepartment({ deptId });
       if (res.success && res.data) {
+        console.log('Department selection response:', res.data);
         setAuth(res.data.accessToken, res.data.route);
         if (res.data.route) {
           window.location.href = '/' + res.data.route;
         }
+      } else {
+        console.error('Failed to select department:', res.message);
       }
     } catch (err: any) {
+      console.error('Error selecting department:', err);
       alert(err.message || 'Failed to select department');
     }
   };

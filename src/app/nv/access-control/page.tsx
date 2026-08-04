@@ -1,41 +1,13 @@
-"use client";
+'use client';
 
-import styles from "./page.module.css";
-import Button from "@/components/shared/Button/Button";
-import {useState} from "react";
-import PermissionModal from "../component/AccessControl/PermissionModal";
-import AccountList
- from "../component/AccessControl/AccountList";
+import AccessControlList from './component/AccessControlList';
+import styles from './page.module.css';
+
 export default function AccessControlPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const handleSave = (data: any) => {
-    console.log("Saved permissions:", data);
-    alert("Lưu phân quyền thành công!");
-  };
   return (
-    <div className={styles.page}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Quản lý phân quyền và kiểm soát</h1>
-          <p className={styles.subtitle}>Quản lý phân quyền người dùng</p>
-        </div>
-        <div className={styles.actions}>
-          <Button variant="primary" onClick={() => setIsModalOpen(true)}>
-            Tạo phân quyền
-          </Button>
-        </div>
-      </div>
-
-      {/* table */}
-      <AccountList/>
-
-      {/* Modal */}
-      <PermissionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
-      />
+    <div className={styles.accessControlPage}>
+      <h1>Quản Lý Quyền Truy Cập</h1>
+      <AccessControlList />
     </div>
   );
 }
