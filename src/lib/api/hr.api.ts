@@ -1,6 +1,6 @@
 import apiClient from './client';
 import { ApiResponse } from '@/types/api.types';
-import { PagedResponse, EmployeeListItemResponse, EmployeeDetailResponse, CreateEmployeeRequest, UpdateEmployeeRequest, TransferDepartmentRequest, DepartmentResponse, CreateDepartmentRequest } from '@/types/hr.types';
+import { PagedResponse, EmployeeListItemResponse, EmployeeDetailResponse, CreateEmployeeRequest, UpdateEmployeeRequest, TransferDepartmentRequest, DepartmentResponse, CreateDepartmentRequest, PositionResponse, CreatePositionRequest, UpdatePositionRequest } from '@/types/hr.types';
 
 export const hrApi = {
   getEmployees: async (params: {
@@ -48,5 +48,32 @@ export const departmentApi = {
 
   deactivate: async (id: string): Promise<ApiResponse<DepartmentResponse>> => {
     return apiClient.patch(`/v1/hr/departments/${id}/deactivate`);
+  },
+};
+
+export const positionApi = {
+  // Lấy tất cả chức danh
+  getAll: async (): Promise<ApiResponse<PositionResponse[]>> => {
+    return apiClient.get('/v1/hr/positions');
+  },
+
+  // Tạo chức danh mới
+  create: async (data: CreatePositionRequest): Promise<ApiResponse<PositionResponse>> => {
+    return apiClient.post('/v1/hr/positions', data);
+  },
+
+  // Lấy chức danh theo ID
+  getById: async (id: string): Promise<ApiResponse<PositionResponse>> => {
+    return apiClient.get(`/v1/hr/positions/${id}`);
+  },
+
+  // Cập nhật chức danh
+  update: async (id: string, data: UpdatePositionRequest): Promise<ApiResponse<PositionResponse>> => {
+    return apiClient.put(`/v1/hr/positions/${id}`, data);
+  },
+
+  // Xóa/Vô hiệu chức danh
+  deactivate: async (id: string): Promise<ApiResponse<PositionResponse>> => {
+    return apiClient.patch(`/v1/hr/positions/${id}/deactivate`);
   },
 };

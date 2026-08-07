@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Modal from '@/components/shared/Modal/Modal';
 import Button from '@/components/shared/Button/Button';
 import styles from './AccessControlList.module.css';
+import { EmployeeListItemResponse } from '@/types/hr.types';
 
 interface PermissionFormData {
   [resource: string]: {
@@ -15,6 +16,7 @@ interface PermissionFormProps {
   isOpen: boolean;
   onClose: () => void;
   departmentId?: string;
+  employee: EmployeeListItemResponse
 }
 
 export default function PermissionForm({

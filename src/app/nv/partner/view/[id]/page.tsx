@@ -7,8 +7,8 @@ import { useEffect, useState } from "react";
 import styles from "./page.module.css";
 import { UsersRound, X } from "lucide-react";
 import { PartnersItem } from "@/types/funding.types";
-import SignatureTab from "@/app/nv/partner/component/partners/SignatureTab";
-import AuthorizationTab from "@/app/nv/partner/component/partners/AuthorizationTab";
+// import SignatureTab from "@/app/nv/partner/component/partners/SignatureTab";
+// import AuthorizationTab from "@/app/nv/partner/component/partners/AuthorizationTab";
 import { useNotification } from "@/hooks/useNotification";
 
 export default function PartnerView() {
@@ -146,7 +146,7 @@ export default function PartnerView() {
             </div>
 
             {/* Tab Content */}
-            <div className={styles.tabContent}>
+            {/* <div className={styles.tabContent}>
                 {activeTab === 'signature' && (
                     <SignatureTab 
                         partnerId={partner.id}
@@ -159,7 +159,7 @@ export default function PartnerView() {
                         partnerId={partner.id}
                         isReadOnly={true}
                     />
-                )}
+                )} */}
 
                 {/* {activeTab === 'limit' && (
                     <PartnerLimitTab 
@@ -174,7 +174,7 @@ export default function PartnerView() {
                         isReadOnly={true}
                     />
                 )} */}
-            </div>
+            {/* </div> */}
             {/* Footer */}
             <div className={styles.footer}>
                 <button onClick={() => router.back()} className={styles.backBtn}>

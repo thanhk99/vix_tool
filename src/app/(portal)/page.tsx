@@ -11,6 +11,7 @@ import styles from './page.module.css';
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const setDeptId = useAuthStore((state) => state.setDeptId);
   const token = useAuthStore((state) => state.token);
   const route = useAuthStore((state) => state.route);
 
@@ -41,7 +42,16 @@ export default function LoginPage() {
           setAuth(res.data.accessToken);
           router.push('/select-department');
         } else if (res.data.accessToken) {
-          setAuth(res.data.accessToken, res.data.route);
+          setAuth(res.data.accessToken, res.data.route, res.data.user?.id, res.data.user?.fullName);
+          const payload = JSON.parse(
+          atob(res.data.accessToken.split(".")[1])
+      );
+
+      console.log("JWT payload:", payload);
+
+      if (payload.deptId) {
+          setDeptId(payload.deptId);
+      }
           router.push(res.data.route ? '/' + res.data.route : '/dashboard');
         }
       } else {

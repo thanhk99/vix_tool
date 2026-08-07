@@ -4,20 +4,25 @@ import { useNotification } from "@/hooks/useNotification";
 import apiClient from "@/lib/api/client";
 import { PartnersItem } from "@/types/funding.types";
 import { useParams } from "next/navigation";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import styles from "./page.module.css";
+import styles from './page.module.css';
 import { UsersRound } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Input from "@/components/shared/Input/Input";
+import Button from "@/components/shared/Button/Button";
+import SignatureTab from "../../component/SignatureTab";
+import AuthorizationTab from "../../component/AuthorizationTab";
 
-export default function PartnerEdit() {
-    const { notifySuccess, notifyError, notifyWarning, notifyInfo } = useNotification();    
-    const params = useParams();
-    const router = useRouter();
-    const id = params.id as string;
+export default function PartnerEdit () {
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [saving, setSaving] = useState(false);
+    const { notifyError, notifyWarning, notifySuccess, notifyInfo } = useNotification();
     const [formData, setFormData] = useState<PartnersItem | null>(null);
+    const [saving, setSaving] = useState(false);
+    const params = useParams();
+    const id = params.id as string;
+    const [error, setError] = useState(false);
+    const router = useRouter();
+    const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'asset' | 'limit'>('signature');
 
     useEffect(() => {
         const fetchPartner = async() => {
@@ -28,11 +33,11 @@ export default function PartnerEdit() {
                 if(found) {
                     setFormData(found);
                 } else {
-                    notifyError("Không tìm thấy đối tác với mã này!")
-                }
-            } catch (error) {
+                    notifyError("Không tìm thấy đối tác với mã này!");
+                } 
+            } catch(error:any) {
+                setError(error);
                 notifyError('Không thể tải thông tin!');
-                console.error(error);
             } finally {
                 setLoading(false);
             }
@@ -40,109 +45,246 @@ export default function PartnerEdit() {
         if(id) fetchPartner();
     }, [id]);
 
-    // Xu ly thay doi input
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => prev ? { ...prev, [name]: value } : null);
+    // Xu ly thay doi input 
+    const handleChange = (e:React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const {name, value} = e.target;
+        setFormData(prev => prev ? {...prev, [name]: value} : null);
     };
 
-    // ===== VERIFY =====
+    // Verify
     const validateForm = () => {
-        // 1. Trường bắt buộc
-        if (!formData?.cusId || formData.cusId.trim() === '') {
-            notifyWarning('Cảnh báo', 'Vui lòng nhập Mã KH!');
-            return false;
-        }
-        if (!formData?.cusName || formData.cusName.trim() === '') {
-            notifyWarning('Cảnh báo', 'Vui lòng nhập Tên KH!');
-            return false;
-        }
-        if (!formData?.idCode || formData.idCode.trim() === '') {
-            notifyWarning('Cảnh báo', 'Vui lòng nhập Số ĐKKD/CCCD!');
+        // ==========================
+        // 1. Các trường bắt buộc
+        // ==========================
+        if (!formData?.cusId?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Mã KH!");
             return false;
         }
 
-        // 2. Email (nếu có)
-        if (formData?.email && formData.email.trim() !== '') {
-            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!formData?.branchCusId?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Mã đơn vị GD!");
+            return false;
+        }
+
+        if (!formData?.cusName?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Tên KH!");
+            return false;
+        }
+
+        if (!formData?.shortName?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Tên viết tắt!");
+            return false;
+        }
+
+        if (!formData?.address?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Địa chỉ!");
+            return false;
+        }
+
+        if (!formData?.idCode?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Số ĐKKD/CCCD!");
+            return false;
+        }
+
+        if (!formData?.issueBy?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Nơi cấp!");
+            return false;
+        }
+
+        if (!formData?.cusType?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Loại khách hàng!");
+            return false;
+        }
+
+        if (!formData?.businessType?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Loại hình kinh doanh!");
+            return false;
+        }
+
+        if (!formData?.status?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Trạng thái!");
+            return false;
+        }
+
+        // ==========================
+        // 2. Email
+        // ==========================
+        if (formData.email?.trim()) {
+            const emailRegex =
+                /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
             if (!emailRegex.test(formData.email)) {
-                notifyError('Lỗi định dạng', 'Email không đúng định dạng! (VD: example@domain.com)');
+                notifyError(
+                    "Lỗi định dạng",
+                    "Email không đúng định dạng!"
+                );
                 return false;
             }
         }
 
-        // 3. Số điện thoại (nếu có)
-        if (formData?.mobile && formData.mobile.trim() !== '') {
+        // ==========================
+        // 3. Số điện thoại
+        // ==========================
+        if (formData.mobile?.trim()) {
             const phoneRegex = /^[0-9]{10,11}$/;
+
             if (!phoneRegex.test(formData.mobile)) {
-                notifyError('Lỗi định dạng', 'Số điện thoại phải là 10-11 chữ số!');
+                notifyError(
+                    "Lỗi định dạng",
+                    "Số điện thoại phải gồm 10-11 chữ số!"
+                );
                 return false;
             }
         }
 
-        // 4. Website (nếu có)
-        if (formData?.website && formData.website.trim() !== '') {
-            const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-            if (!urlRegex.test(formData.website)) {
-                notifyError('Lỗi định dạng', 'Website không đúng định dạng!');
+        // ==========================
+        // 4. Website
+        // ==========================
+        if (formData.website?.trim()) {
+            try {
+                new URL(
+                    formData.website.startsWith("http")
+                        ? formData.website
+                        : "https://" + formData.website
+                );
+            } catch {
+                notifyError(
+                    "Lỗi định dạng",
+                    "Website không đúng định dạng!"
+                );
                 return false;
             }
         }
 
-        // 5. CCCD (12 số)
-        if (formData?.idCode) {
+        // ==========================
+        // 5. CCCD (nếu chỉ dành cho cá nhân)
+        // ==========================
+        if (
+            formData.idCode &&
+            formData.cusType === "Cá nhân"
+        ) {
             const cccdRegex = /^[0-9]{12}$/;
+
             if (!cccdRegex.test(formData.idCode)) {
-                notifyError('Lỗi định dạng', 'Số ĐKKD/CCCD phải là 12 chữ số!');
+                notifyError(
+                    "Lỗi định dạng",
+                    "CCCD phải gồm đúng 12 chữ số!"
+                );
                 return false;
             }
         }
 
-        // 6. Ngày cấp cuối >= Ngày cấp đầu
-        if (formData?.fistIssueDate && formData?.lastIssueDate) {
-            if (formData.lastIssueDate < formData.fistIssueDate) {
-                notifyError('Lỗi ngày tháng', 'Ngày cấp cuối phải sau Ngày cấp lần đầu!');
+        // ==========================
+        // 6. Số lần thay đổi
+        // ==========================
+        if (
+            formData.changeCount != null &&
+            formData.changeCount < 0
+        ) {
+            notifyError(
+                "Lỗi dữ liệu",
+                "Số lần thay đổi phải lớn hơn hoặc bằng 0!"
+            );
+            return false;
+        }
+
+        // ==========================
+        // 7. Ngày cấp
+        // ==========================
+        if (
+            formData.fistIssueDate &&
+            formData.lastIssueDate
+        ) {
+            if (
+                new Date(formData.lastIssueDate) <
+                new Date(formData.fistIssueDate)
+            ) {
+                notifyError(
+                    "Lỗi ngày tháng",
+                    "Ngày cấp cuối phải sau hoặc bằng ngày cấp lần đầu!"
+                );
                 return false;
             }
         }
 
-        // 7. Ngày bắt đầu CN <= Ngày kết thúc CN
-        if (formData?.professionalStartDate && formData?.professionalEndDate) {
-            if (formData.professionalEndDate < formData.professionalStartDate) {
-                notifyError('Lỗi ngày tháng', 'Ngày kết thúc CN phải sau Ngày bắt đầu CN!');
-                return false;
-            }
+        // ==========================
+        // 8. Giấy phép hoạt động
+        // ==========================
+        if (
+            formData.opLiscenseNo?.trim() &&
+            !formData.opIssueDate
+        ) {
+            notifyWarning(
+                "Cảnh báo",
+                "Vui lòng nhập ngày cấp giấy phép hoạt động!"
+            );
+            return false;
         }
 
-        // 8. NĐT chuyên nghiệp
-        if (formData?.professionalInvestor) {
+        // ==========================
+        // 9. Nhà đầu tư chuyên nghiệp
+        // ==========================
+        if (formData.professionalInvestor) {
             if (!formData.professionalStartDate) {
-                notifyWarning('Cảnh báo', 'Vui lòng nhập Ngày bắt đầu CN cho Nhà đầu tư chuyên nghiệp!');
+                notifyWarning(
+                    "Cảnh báo",
+                    "Vui lòng nhập Ngày bắt đầu NĐT chuyên nghiệp!"
+                );
                 return false;
             }
+
             if (!formData.professionalEndDate) {
-                notifyWarning('Cảnh báo', 'Vui lòng nhập Ngày kết thúc CN cho Nhà đầu tư chuyên nghiệp!');
+                notifyWarning(
+                    "Cảnh báo",
+                    "Vui lòng nhập Ngày kết thúc NĐT chuyên nghiệp!"
+                );
+                return false;
+            }
+
+            if (
+                new Date(formData.professionalEndDate) <
+                new Date(formData.professionalStartDate)
+            ) {
+                notifyError(
+                    "Lỗi ngày tháng",
+                    "Ngày kết thúc phải sau ngày bắt đầu!"
+                );
                 return false;
             }
         }
 
-        // 9. Trạng thái
-        const validStatuses = ['Active', 'Pending', 'Inactive'];
-        if (formData?.status && !validStatuses.includes(formData.status)) {
-            notifyError('Lỗi', 'Trạng thái không hợp lệ!');
+        // ==========================
+        // 10. Trạng thái
+        // ==========================
+        const validStatuses = [
+            "ACTIVE",
+            "PENDING",
+            "INACTIVE"
+        ];
+
+        if (
+            formData.status &&
+            !validStatuses.includes(
+                formData.status.toUpperCase()
+            )
+        ) {
+            notifyError(
+                "Lỗi",
+                "Trạng thái không hợp lệ!"
+            );
             return false;
         }
 
         return true;
     };
 
-    // Save data
-    const handleSubmit = async (e: React.FormEvent) => {
+    // Save data 
+    const handleSubmit = async(e:React.FormEvent) => {
         e.preventDefault();
         if(!formData) return;
 
         // Verify
-        if (!validateForm()) {
+        if(!validateForm()) {
             return;
         }
         setSaving(true);
@@ -173,201 +315,310 @@ export default function PartnerEdit() {
 
             await apiClient.put(`/v1/capital-source/partners/${formData.cusId}`, submitData);
             notifySuccess('Thành công', 'Cập nhật đối tác thành công!');
-            router.push(`/nv/partners/view/${id}`);
+            router.push(`/v1/partner/view/${id}`);
         } catch(error:any){
-            notifyError('Lỗi', error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật!');
-            console.error(error);
+            setError(error);
+            notifyError('Lỗi', error.response?.data?.message || 'Có lỗi xảy ra!');
         } finally {
             setSaving(false);
         }
     };
-    if (loading) return <div className={styles.loading}>Đang tải dữ liệu...</div>;
-    if (error) return <div className={styles.error}>{error}</div>;
-    if (!formData) return <div className={styles.error}>Không tìm thấy đối tác</div>;
+
+    if(loading) return <div className={styles.loading}>Đang tải dữ liệu...</div>
+    if(!formData) return <div className={styles.error}>Không tìm thấy đối tác</div>
+    if(error) return <div className={styles.error}>{error}</div>
 
     return (
-        <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Header */}
-            <div className={styles.header}>
-                <UsersRound size={25}/>
-                <h1>Thông tin đối tác</h1>
+        <div className={styles.container}>
+            <form onSubmit={handleSubmit} className={styles.form}>
+                {/* Header */}
+                <div className={styles.header}>
+                    <UsersRound size={25}/>
+                    <h1>Thông tin đối tác</h1>
+                </div>
+                {/* Title */}
+                <div className={styles.title}>
+                    <h1>Thông tin chung</h1>
+                </div>
+                <div className={styles.content}>
+
+                    <div className={styles.formGroup}>
+                        <label>Mã KH *</label>
+                        <Input
+                            type="text"
+                            name="cusId"
+                            value={formData.cusId}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Mã đơn vị GD</label>
+                        <Input
+                            type="text"
+                            name="branchCusId"
+                            value={formData.branchCusId || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Tên KH *</label>
+                        <Input
+                            type="text"
+                            name="cusName"
+                            value={formData.cusName}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Tên viết tắt</label>
+                        <Input
+                            type="text"
+                            name="shortName"
+                            value={formData.shortName || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Địa chỉ</label>
+                        <Input
+                            type="text"
+                            name="address"
+                            value={formData.address || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Điện thoại</label>
+                        <Input
+                            type="text"
+                            name="mobile"
+                            value={formData.mobile || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Email</label>
+                        <Input
+                            type="email"
+                            name="email"
+                            value={formData.email || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Website</label>
+                        <Input
+                            type="text"
+                            name="website"
+                            value={formData.website || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Số ĐKKD/CCCD *</label>
+                        <Input
+                            type="text"
+                            name="idCode"
+                            value={formData.idCode}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Ngày cấp lần đầu</label>
+                        <Input
+                            type="date"
+                            name="fistIssueDate"
+                            value={formData.fistIssueDate || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Ngày cấp cuối</label>
+                        <Input
+                            type="date"
+                            name="lastIssueDate"
+                            value={formData.lastIssueDate || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Nơi cấp</label>
+                        <Input
+                            type="text"
+                            name="issueBy"
+                            value={formData.issueBy || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Số lần thay đổi</label>
+                        <Input
+                            type="number"
+                            name="changeCount"
+                            value={formData.changeCount ?? 0}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>GP hoạt động</label>
+                        <Input
+                            type="text"
+                            name="opLiscenseNo"
+                            value={formData.opLiscenseNo || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Ngày cấp GP</label>
+                        <Input
+                            type="date"
+                            name="opIssueDate"
+                            value={formData.opIssueDate || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Loại khách hàng</label>
+                        <Input
+                            type="text"
+                            name="cusType"
+                            value={formData.cusType || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Loại hình kinh doanh</label>
+                        <Input
+                            type="text"
+                            name="businessType"
+                            value={formData.businessType || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    {/* <div className={styles.formGroup}>
+                        <label>Nhà đầu tư chuyên nghiệp</label>
+                        <Input
+                            type="checkbox"
+                            name="professionalInvestor"
+                            checked={formData.professionalInvestor ?? false}
+                            onChange={(e) =>
+                                setFormData({
+                                    ...formData,
+                                    professionalInvestor: e.target.checked,
+                                })
+                            }
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Ngày bắt đầu NĐT chuyên nghiệp</label>
+                        <Input
+                            type="date"
+                            name="professionalStartDate"
+                            value={formData.professionalStartDate || ""}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Ngày kết thúc NĐT chuyên nghiệp</label>
+                        <Input
+                            type="date"
+                            name="professionalEndDate"
+                            value={formData.professionalEndDate || ""}
+                            onChange={handleChange}
+                        />
+                    </div> */}
+
+                    <div className={styles.formGroup}>
+                        <label>Trạng thái</label>
+                        <select
+                            name="status"
+                            value={formData.status || ""}
+                            onChange={handleChange}
+                        >
+                            <option value="">--Chọn--</option>
+                            <option value="ACTIVE">Hoạt động</option>
+                            <option value="PENDING">Chờ duyệt</option>
+                            <option value="INACTIVE">Ngừng hoạt động</option>
+                        </select>
+                    </div>
+
+                </div>
+            </form>
+
+            {/*Tab */}
+            <div className={styles.tabs}>
+                <button 
+                    className={`${styles.tab} ${activeTab === 'signature' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('signature')}
+                >
+                    Chữ ký
+                </button>
+                <button 
+                    className={`${styles.tab} ${activeTab === 'authorization' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('authorization')}
+                >
+                    UQ / Người đại diện PL
+                </button>
+                <button 
+                    className={`${styles.tab} ${activeTab === 'limit' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('limit')}
+                >
+                    QL hạn mức
+                </button>
+                <button 
+                    className={`${styles.tab} ${activeTab === 'asset' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('asset')}
+                >
+                    TSĐB
+                </button>
             </div>
-            {/* Title */}
-            <div className={styles.title}>
-                <h1>Thông tin chung</h1>
-            </div>
-            <div className={styles.content}>
-
-                <div className={styles.formGroup}>
-                    <label>Mã KH *</label>
-                    <input
-                        type="text"
-                        name="cusId"
-                        value={formData.cusId}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Mã đơn vị GD</label>
-                    <input
-                        type="text"
-                        name="branchCusId"
-                        value={formData.branchCusId || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Tên KH *</label>
-                    <input
-                        type="text"
-                        name="cusName"
-                        value={formData.cusName}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Tên viết tắt</label>
-                    <input
-                        type="text"
-                        name="shortName"
-                        value={formData.shortName || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Địa chỉ</label>
-                    <input
-                        type="text"
-                        name="address"
-                        value={formData.address || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Điện thoại</label>
-                    <input
-                        type="text"
-                        name="mobile"
-                        value={formData.mobile || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Email</label>
-                    <input
-                        type="email"
-                        name="email"
-                        value={formData.email || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Website</label>
-                    <input
-                        type="text"
-                        name="website"
-                        value={formData.website || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Số ĐKKD/CCCD *</label>
-                    <input
-                        type="text"
-                        name="idCode"
-                        value={formData.idCode}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Ngày cấp lần đầu</label>
-                    <input
-                        type="date"
-                        name="fistIssueDate"
-                        value={formData.fistIssueDate || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Ngày cấp cuối</label>
-                    <input
-                        type="date"
-                        name="lastIssueDate"
-                        value={formData.lastIssueDate || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Nơi cấp</label>
-                    <input
-                        type="text"
-                        name="issueBy"
-                        value={formData.issueBy || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Số lần thay đổi</label>
-                    <input
-                        type="number"
-                        name="changeCount"
-                        value={formData.changeCount ?? 0}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>GP hoạt động</label>
-                    <input
-                        type="text"
-                        name="opLiscenseNo"
-                        value={formData.opLiscenseNo || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.formGroup}>
-                    <label>Ngày cấp GP</label>
-                    <input
-                        type="date"
-                        name="opIssueDate"
-                        value={formData.opIssueDate || ""}
-                        onChange={handleChange}
-                    />
-                </div>
-
+            <div className={styles.tabContent}>
+                {activeTab === 'signature' && (
+                    <SignatureTab/>
+                )}
+                {activeTab === 'authorization' && (
+                    <AuthorizationTab />
+                )}
             </div>
 
+            {/* Footer */}
             <div className={styles.footer}>
-                <button
+                <Button
+                    variant="outline"
                     type="button"
                     onClick={() => router.back()}
                     className={styles.cancelBtn}
                     disabled={saving}
                 >
                     Hủy
-                </button>
-
-                <button
+                </Button>
+                <Button
                     type="submit"
                     className={styles.saveBtn}
                     disabled={saving}
                 >
                     {saving ? "Đang lưu..." : "Lưu"}
-                </button>
+                </Button>
             </div>
-        </form>
+        </div>
     )
 }

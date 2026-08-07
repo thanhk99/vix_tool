@@ -27,6 +27,30 @@ export interface PartnersItem {
   lastUpdated: string;                 // Thời gian cập nhật gần nhất
 }
 
+export interface CreatePartnerRequest {
+  cusId: string;
+  branchCusId: string;
+  cusName: string;
+  shortName: string;
+  address: string;
+  idCode: string;
+  fistIssueDate: string;
+  lastIssueDate: string;
+  issueBy: string;
+  changeCount: number;
+  opLiscenseNo: string;
+  opIssueDate: string;
+  mobile: string;
+  email: string;
+  website: string;
+  cusType: string;
+  businessType: string;
+  professionalInvestor: boolean;
+  professionalStartDate: string;
+  professionalEndDate: string;
+  status: string;
+}
+
 export interface AuthorizationItem {
     id: string;                    // ID của bản ghi ủy quyền
     partnerId: string;             // ID đối tác
@@ -42,9 +66,28 @@ export interface AuthorizationItem {
     authNo: string;                // Số giấy tờ ủy quyền
     effDate: string;               // Ngày hiệu lực
     authedPosition: string;        // Chức vụ người được ủy quyền
-    scope: string;                 // Phạm vi ủy quyền
+    // scope: string;                 // Phạm vi ủy quyền
     phone: string;                 // Số điện thoại
     email: string;                 // Email
     expiryDate: string;            // Ngày hết hạn
-    status?: string;               // Trạng thái (Active, Expired,...)
+}
+
+export interface CreateAuthorization {
+    id?: string;
+    authName: string;              // Tên người ủy quyền
+    authPosition: string;          // Chức vụ người ủy quyền
+    authidNo: string;              // CCCD người ủy quyền
+    authissueDate: string;         // Ngày cấp CCCD người ủy quyền
+    authedName: string;            // Tên người được ủy quyền
+    authedIdNo: string;            // CCCD người được ủy quyền
+    authedIssueDate: string;       // Ngày cấp CCCD người được ủy quyền
+    issuePlace: string;            // Nơi cấp
+    authNo: string;                // Số giấy tờ ủy quyền
+    effDate: string;               // Ngày hiệu lực
+    authedPosition: string;        // Chức vụ người được ủy quyền
+    // scope: string;                 // Phạm vi ủy quyền
+    phone: string;                 // Số điện thoại
+    email: string;                 // Email
+    expiryDate: string;            // Ngày hết hạn
+    seqId: number
 }

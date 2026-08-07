@@ -29,7 +29,7 @@ export default function SelectDepartmentPage() {
       const res = await authApi.selectDepartment({ deptId });
       if (res.success && res.data) {
         console.log('Department selection response:', res.data);
-        setAuth(res.data.accessToken, res.data.route);
+        setAuth(res.data.accessToken, res.data.route, res.data?.user?.id, res.data?.user?.fullName);
         if (res.data.route) {
           window.location.href = '/' + res.data.route;
         }

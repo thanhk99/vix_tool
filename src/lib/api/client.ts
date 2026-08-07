@@ -12,7 +12,6 @@ apiClient.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
       const { token, deptId } = useAuthStore.getState();
-
       if (token) {
         config.headers.set(
           "Authorization",

@@ -5,7 +5,7 @@ import Modal from '@/components/shared/Modal/Modal';
 import Input from '@/components/shared/Input/Input';
 import Select, { SelectOption } from '@/components/shared/Select/Select';
 import Button from '@/components/shared/Button/Button';
-import { hrApi, departmentApi } from '@/lib/api/hr.api';
+import { hrApi, departmentApi, positionApi } from '@/lib/api/hr.api';
 import { CreateEmployeeRequest } from '@/types/hr.types';
 import styles from './CreateEmployeeModal.module.css';
 
@@ -28,6 +28,7 @@ const INITIAL_FORM: CreateEmployeeRequest = {
   fullName: '',
   password: '',
   departmentId: '',
+  positionId:'',
 };
 
 export default function CreateEmployeeModal({
@@ -40,7 +41,7 @@ export default function CreateEmployeeModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<CreateEmployeeRequest>(INITIAL_FORM);
   const [deptOptions, setDeptOptions] = useState<SelectOption[]>([]);
-
+  const [positionOptions, setPositionOptions] = useState<SelectOption[]>([]);
   /* Load department list when modal opens */
   useEffect(() => {
     if (!isOpen) return;
@@ -52,6 +53,12 @@ export default function CreateEmployeeModal({
           setDeptOptions(
             res.data.map((d) => ({ label: `${d.name} (${d.code})`, value: d.id })),
           );
+        }
+
+        // Load positions
+        const posRes = await positionApi.getAll();
+        if(posRes.success && posRes.data) {
+          setPositionOptions(posRes.data.map((d) => ({ label: `${d.name} (${d.code})`, value: d.id})));
         }
       } catch {
         notifyError('Lỗi', 'Không thể tải danh sách phòng ban');
@@ -154,6 +161,18 @@ export default function CreateEmployeeModal({
             value={formData.departmentId}
             onChange={(value) => setFormData((prev) => ({ ...prev, departmentId: value }))}
             placeholder="-- Chọn phòng ban --"
+            required
+            fullWidth
+          />
+        </div>
+
+        <div className={styles.row}>
+          <Select
+            label="Chức danh"
+            options={positionOptions}
+            value={formData.positionId}
+            onChange={(value) => setFormData((prev) => ({...prev, positionId: value}))}
+            placeholder="-- Chọn chức danh --"
             required
             fullWidth
           />
