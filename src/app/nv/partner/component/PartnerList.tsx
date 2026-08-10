@@ -72,10 +72,10 @@ export default function PartnerList() {
     try {
       setLoading(true);
       const res = await apiClient.get("/v1/capital-source/partners");
-      const data = res.data.data || res.data;
+      const data = Array.isArray(res) ? res : (res?.data || []);
       setPartners(Array.isArray(data) ? data : []);
     } catch (error) {
-      notifyError('Lỗi', 'Không tải được dữ liệu!')
+      notifyError('Lỗi', 'Không tải được dữ liệu!');
     } finally {
       setLoading(false);
     }
