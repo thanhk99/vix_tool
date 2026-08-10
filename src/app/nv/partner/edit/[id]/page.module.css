@@ -119,8 +119,8 @@
     margin-top:12px;
     padding:12px;
 
-    background:var(--surface);
-    border:1px solid var(--border);
+    /* background:var(--surface);
+    border:1px solid var(--border); */
     border-top:none;
 }
 

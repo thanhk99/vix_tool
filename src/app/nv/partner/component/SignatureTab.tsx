@@ -99,11 +99,12 @@ export default function SignatureTab() {
                     columns={columns}
                     data={currentData}
                     rowKey="fileName"
+                    emptyText="Không có dữ liệu chữ ký"
                 />
             </div>
 
             {/* Phan trang  */}
-            {totalItems > 0 && (
+            {/* {totalItems > 0 && ( */}
                 <div className={styles.pagination}>
 
                     <div className={styles.paginationInfo}>
@@ -147,7 +148,7 @@ export default function SignatureTab() {
                     </div>
 
                 </div>
-            )}
+            {/* )} */}
         </div>
     )
 }

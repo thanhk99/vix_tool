@@ -24,6 +24,17 @@ const GENDER_OPTIONS: SelectOption[] = [
   { label: 'Khác', value: 'OTHER' },
 ];
 
+const ROLE_OPTIONS: SelectOption[] = [
+  {
+    label: 'Trưởng phòng',
+    value: 'DEPT_ADMIN',
+  },
+  {
+    label: 'Nhân viên',
+    value: 'MEMBER',
+  },
+];
+
 export default function EditEmployeeModal({
   isOpen,
   onClose,
@@ -37,6 +48,7 @@ export default function EditEmployeeModal({
   
   const [formData, setFormData] = useState<UpdateEmployeeRequest>({
     fullName: '',
+    role: 'MEMBER',
   });
 
   const [departmentId, setDepartmentId] = useState<string>('');
@@ -72,6 +84,7 @@ export default function EditEmployeeModal({
               idCardIssuedPlace: res.data.idCardIssuedPlace || undefined,
               joinDate: res.data.joinDate || undefined,
               avatarUrl: res.data.avatarUrl || undefined,
+              role: res.data.role || 'MEMBER',
             });
             setDepartmentId(res.data.departmentId || '');
             setOriginalDepartmentId(res.data.departmentId || '');
@@ -231,6 +244,21 @@ export default function EditEmployeeModal({
               value={departmentId}
               onChange={(val) => setDepartmentId(val)}
               required
+              fullWidth
+              disabled={!isActiveOrInactive}
+            />
+          </div>
+          <div className={styles.row}>
+            <Select
+              label="Chức vụ"
+              options={ROLE_OPTIONS}
+              value={formData.role ?? 'MEMBER'}
+              onChange={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  role: value as 'DEPT_ADMIN' | 'MEMBER',
+                }))
+              }
               fullWidth
               disabled={!isActiveOrInactive}
             />

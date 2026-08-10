@@ -75,7 +75,7 @@ export default function PartnerList() {
       const data = res.data.data || res.data;
       setPartners(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error(error);
+      notifyError('Lỗi', 'Không tải được dữ liệu!')
     } finally {
       setLoading(false);
     }
@@ -209,7 +209,7 @@ export default function PartnerList() {
       await apiClient.post("/v1/capital-source/partners", payload);
       fetchPartners();
     } catch (error){
-      console.error(error);
+      notifyError('Lỗi', 'Không tải được dữ liệu');
       notifyError("Lỗi", "Có lỗi xảy ra!");
     } finally {
       setLoading(false);

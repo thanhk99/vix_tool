@@ -214,7 +214,8 @@ export default function AuthorizationTab() {
                     columns={columns}
                     rowKey="id" 
                     data={currentData}  
-                    isLoading={loading}              
+                    isLoading={loading}  
+                    emptyText="Không có dữ liệu ủy quyền"            
                 />
             </div>
             {isOpenModal && (
@@ -245,7 +246,7 @@ export default function AuthorizationTab() {
                 </Modal>
             )}
             {/*Phân trang */}
-            {totalItems > 0 && (
+            {/* {totalItems > 0 && ( */}
                 <div className={styles.pagination}>
 
                     <div className={styles.paginationInfo}>
@@ -289,7 +290,7 @@ export default function AuthorizationTab() {
                     </div>
 
                 </div>
-            )} 
+            {/* )}  */}
         </div>
     )
 } 

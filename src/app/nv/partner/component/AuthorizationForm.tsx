@@ -161,7 +161,6 @@ export default function AuthorizationForm({onSubmit, nextSeqId=1}: Authorization
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if(!validateForm()) return;
-        console.log('vali')
         onSubmit(formData);
     };
 

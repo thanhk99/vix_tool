@@ -81,19 +81,6 @@ export default function HrPage() {
       render: (_:any, __:any, value) => value || '---',
     },
     {
-      key: 'positionName',
-      title: 'Chức danh',
-      render: (value, row) => {
-        const positionName = (value || row.positionName || '---') as string;
-        const isManager = positionName === 'Trưởng phòng' || positionName === 'HEAD';
-        return (
-          <span className={isManager ? styles.managerBadge : styles.employeeBadge}>
-            {positionName}
-          </span>
-        );
-      }
-    },
-    {
       key: 'status',
       title: 'Trạng thái',
       width: '140px',

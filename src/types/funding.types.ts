@@ -91,3 +91,83 @@ export interface CreateAuthorization {
     expiryDate: string;            // Ngày hết hạn
     seqId: number
 }
+
+export interface CustommerTypeItem {
+  cusType: "...",
+  businessType: "...",
+  professionalInvestor: true,
+  professionalStartDate: "2026-08-09",
+  professionalEndDate: "2026-08-09"
+}
+
+export interface CreditLimitItem {
+  id: string;
+  partnerId: string;
+  limitId: string;
+  poolName: string;
+  currency: string;
+  poolType: string;
+  totalPool: number;
+  usedPool: number;
+  remainPool: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
+
+export interface CreditLimitListResponse {
+  success: boolean;
+  message: string;
+  data: CreditLimitItem[];
+}
+
+export interface CreateCreditLimitRequest {
+  // id: string;
+  // partnerId: string;
+  limitId: string;
+  poolName: string;
+  currency: string;
+  poolType: string;
+  totalPool: number;
+  usedPool: number;
+  remainPool: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
+
+export interface AssetItem {
+    id: string;
+    partnerId: string;
+    assetId: string;
+    assetType: string;
+    issuer: string;
+    issuerCode: string;
+    parValue: number;
+    issueDate: string;
+    maturityDate: string;
+    callDate: string;
+    couponType: string;
+    couponRate: number;
+    interestPayTerm: number;
+}
+
+export interface AssetResponse {
+    success: boolean;
+    message: string;
+    data: AssetItem[];
+}
+
+export interface AssetFormData {
+    assetId: string;
+    assetType: string;
+    issuer: string;
+    issuerCode: string;
+    parValue: string;
+    issueDate: string;
+    maturityDate: string;
+    callDate: string;
+    couponType: string;
+    couponRate: string;
+    interestPayTerm: string;
+}

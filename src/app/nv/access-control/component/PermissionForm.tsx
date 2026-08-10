@@ -41,13 +41,13 @@ export default function PermissionForm({
   // Available resources
   const resourceOptions = [
     { key: 'CAPITAL_CONFIG', label: 'Danh mục và Cấu hình' },
-    { key: 'CAPITAL_PARTNER_LIMIT', label: 'Quản lý Hạn mức tín dụng' },
-    { key: 'CAPITAL_CONTRACT', label: 'Quản lý Khế ước Nhận Nợ' },
-    { key: 'CAPITAL_REPAYMENT', label: 'Quản lý Sự kiện Trả Nợ' },
-    { key: 'CAPITAL_ASSET', label: 'Quản lý Giao dịch tài sản' },
+    { key: 'CAPITAL_PARTNER_LIMIT', label: 'QL Hạn mức tín dụng' },
+    { key: 'CAPITAL_CONTRACT', label: 'QL Khế ước Nhận Nợ' },
+    { key: 'CAPITAL_REPAYMENT', label: 'QL Sự kiện Trả Nợ' },
+    { key: 'CAPITAL_ASSET', label: 'QL Giao dịch tài sản' },
     { key: 'CAPITAL_REPORT', label: 'Export Excel' },
     { key: 'CAPITAL_BATCH', label: 'Import Excel' },
-    { key: 'MANAGE_ROLE_GROUP', label: 'Quản lý Nhóm Vai Trò' },
+    { key: 'MANAGE_ROLE_GROUP', label: 'QL Nhóm Vai Trò' },
     { key: 'AUDIT_LOG', label: 'Lịch sử thay đổi' }
   ];
 
@@ -114,18 +114,25 @@ export default function PermissionForm({
     setFormData(prev => ({
       ...prev,
       [resource]: {
-        ...prev[resource],
-        [action]: !prev[resource][action]
-      }
+        ...(prev[resource] || {}),
+        [action]: !(prev[resource]?.[action] ?? false),
+      },
     }));
   };
 
   const handleSelectAllInResource = (resource: string) => {
     setFormData(prev => {
       const newFormState = { ...prev };
-      const allSelected = actionOptions.every(action => prev[resource][action.key]);
+      const allSelected = actionOptions.every(
+  action => prev[resource][action.key]
+);
 
       // If all are selected, deselect all; otherwise select all
+      actionOptions.forEach(action => {
+        newFormState[resource] = {
+        ...(newFormState[resource] || {}),
+      };
+    });
       actionOptions.forEach(action => {
         newFormState[resource][action.key] = !allSelected;
       });

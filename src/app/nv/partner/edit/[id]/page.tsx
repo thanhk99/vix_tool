@@ -12,6 +12,9 @@ import Input from "@/components/shared/Input/Input";
 import Button from "@/components/shared/Button/Button";
 import SignatureTab from "../../component/SignatureTab";
 import AuthorizationTab from "../../component/AuthorizationTab";
+import CustommerTypeTab from "../../component/CustommerTypeTab";
+import CrelimitTab from "../../component/CrelimitTab";
+import AssetTab from "../../component/AssetTab";
 
 export default function PartnerEdit () {
     const [loading, setLoading] = useState(true);
@@ -20,9 +23,10 @@ export default function PartnerEdit () {
     const [saving, setSaving] = useState(false);
     const params = useParams();
     const id = params.id as string;
+    const partnerId = params.partnerId as string;
     const [error, setError] = useState(false);
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'asset' | 'limit'>('signature');
+    const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'custommertype' | 'asset' | 'limit'>('signature');
 
     useEffect(() => {
         const fetchPartner = async() => {
@@ -579,6 +583,12 @@ export default function PartnerEdit () {
                     UQ / Người đại diện PL
                 </button>
                 <button 
+                    className={`${styles.tab} ${activeTab === 'custommertype' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('custommertype')}
+                >
+                    Loại hình KH
+                </button>
+                <button 
                     className={`${styles.tab} ${activeTab === 'limit' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('limit')}
                 >
@@ -597,6 +607,15 @@ export default function PartnerEdit () {
                 )}
                 {activeTab === 'authorization' && (
                     <AuthorizationTab />
+                )}
+                {activeTab === 'custommertype' && (
+                    <CustommerTypeTab partnerId={partnerId} />
+                )}
+                {activeTab === 'limit' && (
+                    <CrelimitTab partnerId={partnerId}/>
+                )}
+                {activeTab === 'asset' && (
+                    <AssetTab partnerId={partnerId}/>
                 )}
             </div>
 
