@@ -30,7 +30,7 @@ export default function AuthorizationForm({onSubmit, nextSeqId=1}: Authorization
         expiryDate: "",
         phone: "",
         email: "",
-        // scope:""
+        scope:""
     });
 
     useEffect (() => {
@@ -118,10 +118,10 @@ export default function AuthorizationForm({onSubmit, nextSeqId=1}: Authorization
             return false;
         }
 
-        // if (!formData.scope?.trim()) {
-        //     notifyWarning("Cảnh báo", "Vui lòng nhập Phạm vi ủy quyền!");
-        //     return false;
-        // }
+        if (!formData.scope?.trim()) {
+            notifyWarning("Cảnh báo", "Vui lòng nhập Phạm vi ủy quyền!");
+            return false;
+        }
 
         if (!formData.phone?.trim()) {
             notifyWarning("Cảnh báo", "Vui lòng nhập Số điện thoại!");
@@ -259,12 +259,12 @@ export default function AuthorizationForm({onSubmit, nextSeqId=1}: Authorization
                 onChange={handleChange}
             />
 
-            {/* <Input
+            <Input
                 label="Phạm vi ủy quyền"
                 name="scope"
                 value={formData.scope}
                 onChange={handleChange}
-            /> */}
+            />
 
             <Input
                 label="Số điện thoại"

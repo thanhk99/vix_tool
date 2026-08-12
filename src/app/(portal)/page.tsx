@@ -35,9 +35,6 @@ export default function LoginPage() {
       const res = await authApi.login({ email, password });
 
       if (res.success && res.data) {
-        // Debug log to check what's returned from login
-        console.log('Login response:', res.data);
-
         if (res.data.departments && res.data.departments.length > 1) {
           setAuth(res.data.accessToken);
           router.push('/select-department');
@@ -46,9 +43,6 @@ export default function LoginPage() {
           const payload = JSON.parse(
           atob(res.data.accessToken.split(".")[1])
       );
-
-      console.log("JWT payload:", payload);
-
       if (payload.deptId) {
           setDeptId(payload.deptId);
       }

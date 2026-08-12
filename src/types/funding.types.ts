@@ -66,7 +66,7 @@ export interface AuthorizationItem {
     authNo: string;                // Số giấy tờ ủy quyền
     effDate: string;               // Ngày hiệu lực
     authedPosition: string;        // Chức vụ người được ủy quyền
-    // scope: string;                 // Phạm vi ủy quyền
+    scope: string;                 // Phạm vi ủy quyền
     phone: string;                 // Số điện thoại
     email: string;                 // Email
     expiryDate: string;            // Ngày hết hạn
@@ -85,7 +85,7 @@ export interface CreateAuthorization {
     authNo: string;                // Số giấy tờ ủy quyền
     effDate: string;               // Ngày hiệu lực
     authedPosition: string;        // Chức vụ người được ủy quyền
-    // scope: string;                 // Phạm vi ủy quyền
+    scope: string;                 // Phạm vi ủy quyền
     phone: string;                 // Số điện thoại
     email: string;                 // Email
     expiryDate: string;            // Ngày hết hạn
@@ -170,4 +170,22 @@ export interface AssetFormData {
     couponType: string;
     couponRate: string;
     interestPayTerm: string;
+}
+
+export interface Signature {
+    fileName: string;
+    typeSignature: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+}
+
+export interface SignatureFormData {
+    fileName: string;
+    typeSignature: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    status: string;
 }

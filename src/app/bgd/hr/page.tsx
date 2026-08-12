@@ -78,7 +78,6 @@ export default function HrPage() {
     {
       key: 'departmentName',
       title: 'Phòng ban',
-      render: (_:any, __:any, value) => value || '---',
     },
     {
       key: 'status',

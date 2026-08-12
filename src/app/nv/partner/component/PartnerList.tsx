@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNotification } from '@/hooks/useNotification';
 import { useRouter } from 'next/navigation';
+import Modal from '@/components/shared/Modal/Modal';
 
 export default function PartnerList() {
   const [partners, setPartners] = useState<PartnersItem[]>([]);
@@ -176,7 +177,7 @@ export default function PartnerList() {
       render: (_, record) => (
         <div className={styles.actionButtons}>
           <Button variant="outline" size="sm" onClick={() => router.push(`/nv/partner/edit/${record.id}`)} >Sửa</Button>
-          <Button variant="danger" size="sm" style={{ marginLeft: 8 }}>Xóa</Button>
+          <Button variant="danger" size="sm" style={{ marginLeft: 3 }}>Xóa</Button>
         </div>
       ),
     },
@@ -258,259 +259,301 @@ export default function PartnerList() {
 
       {/*Modal */}
       {isOpenModal && (
-      <div className={styles.modalOverlay} onClick={() => setIsOpenModal(false)}>
-        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-          <h3>Thêm mới đối tác</h3>
-          <Input
-            label="Mã KH"
-            value={formData.cusId}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                cusId: e.target.value
-              })
-            }
-          />
-            <Input
-              label="Mã đơn vị GD"
-              value={formData.branchCusId}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  branchCusId: e.target.value
-                })
+          <Modal
+              isOpen={isOpenModal}
+              onClose={() => setIsOpenModal(false)}
+              title="Thêm mới đối tác"
+              size="lg"
+              footer={
+                  <>
+                      <Button
+                          variant="outline"
+                          onClick={() => setIsOpenModal(false)}
+                      >
+                          Hủy
+                      </Button>
+
+                      <Button
+                          variant="primary"
+                          onClick={handleCreatePartner}
+                      >
+                          Lưu
+                      </Button>
+                  </>
               }
-            />
+          >
+              <div className={styles.formGrid}>
 
-            <Input
-              label="Tên KH"
-              value={formData.cusName}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  cusName: e.target.value
-                })
-              }
-            />
+                  {/* Mã KH */}
+                  <Input
+                      label="Mã KH"
+                      value={formData.cusId}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              cusId: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Tên viết tắt"
-              value={formData.shortName}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  shortName: e.target.value
-                })
-              }
-            />
+                  {/* Mã đơn vị GD */}
+                  <Input
+                      label="Mã đơn vị GD"
+                      value={formData.branchCusId}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              branchCusId: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Địa chỉ"
-              value={formData.address}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  address: e.target.value
-                })
-              }
-            />
+                  {/* Tên KH */}
+                  <Input
+                      label="Tên KH"
+                      value={formData.cusName}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              cusName: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Số ĐKKD/CCCD"
-              value={formData.idCode}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  idCode: e.target.value
-                })
-              }
-            />
+                  {/* Tên viết tắt */}
+                  <Input
+                      label="Tên viết tắt"
+                      value={formData.shortName}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              shortName: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Ngày cấp lần đầu"
-              type="date"
-              value={formData.fistIssueDate}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  fistIssueDate: e.target.value
-                })
-              }
-            />
+                  {/* Địa chỉ */}
+                  <Input
+                      label="Địa chỉ"
+                      value={formData.address}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              address: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Ngày cấp cuối"
-              type="date"
-              value={formData.lastIssueDate}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  lastIssueDate: e.target.value
-                })
-              }
-            />
+                  {/* Số ĐKKD/CCCD */}
+                  <Input
+                      label="Số ĐKKD/CCCD"
+                      value={formData.idCode}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              idCode: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Nơi cấp"
-              value={formData.issueBy}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  issueBy: e.target.value
-                })
-              }
-            />
+                  {/* Ngày cấp lần đầu */}
+                  <Input
+                      label="Ngày cấp lần đầu"
+                      type="date"
+                      value={formData.fistIssueDate}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              fistIssueDate: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Số lần thay đổi"
-              type="number"
-              value={formData.changeCount}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  changeCount: Number(e.target.value)
-                })
-              }
-            />
+                  {/* Ngày cấp cuối */}
+                  <Input
+                      label="Ngày cấp cuối"
+                      type="date"
+                      value={formData.lastIssueDate}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              lastIssueDate: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Giấy phép hoạt động"
-              value={formData.opLiscenseNo}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  opLiscenseNo: e.target.value
-                })
-              }
-            />
+                  {/* Nơi cấp */}
+                  <Input
+                      label="Nơi cấp"
+                      value={formData.issueBy}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              issueBy: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Ngày cấp giấy phép"
-              type="date"
-              value={formData.opIssueDate}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  opIssueDate: e.target.value
-                })
-              }
-            />
+                  {/* Số lần thay đổi */}
+                  <Input
+                      label="Số lần thay đổi"
+                      type="number"
+                      value={formData.changeCount}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              changeCount: Number(e.target.value),
+                          })
+                      }
+                  />
 
-            <Input
-              label="Số điện thoại"
-              value={formData.mobile}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  mobile: e.target.value
-                })
-              }
-            />
+                  {/* Giấy phép hoạt động */}
+                  <Input
+                      label="Giấy phép hoạt động"
+                      value={formData.opLiscenseNo}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              opLiscenseNo: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  email: e.target.value
-                })
-              }
-            />
+                  {/* Ngày cấp giấy phép */}
+                  <Input
+                      label="Ngày cấp giấy phép"
+                      type="date"
+                      value={formData.opIssueDate}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              opIssueDate: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Website"
-              value={formData.website}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  website: e.target.value
-                })
-              }
-            />
+                  {/* Số điện thoại */}
+                  <Input
+                      label="Số điện thoại"
+                      value={formData.mobile}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              mobile: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Loại khách hàng"
-              value={formData.cusType}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  cusType: e.target.value
-                })
-              }
-            />
+                  {/* Email */}
+                  <Input
+                      label="Email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              email: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Loại hình kinh doanh"
-              value={formData.businessType}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  businessType: e.target.value
-                })
-              }
-            />
+                  {/* Website */}
+                  <Input
+                      label="Website"
+                      value={formData.website}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              website: e.target.value,
+                          })
+                      }
+                  />
 
-            <label>
-              <input
-                type="checkbox"
-                checked={formData.professionalInvestor}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    professionalInvestor: e.target.checked
-                  })
-                }
-              />
-              Nhà đầu tư chuyên nghiệp
-            </label>
+                  {/* Loại khách hàng */}
+                  <Input
+                      label="Loại khách hàng"
+                      value={formData.cusType}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              cusType: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Ngày bắt đầu NĐT chuyên nghiệp"
-              type="date"
-              value={formData.professionalStartDate}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  professionalStartDate: e.target.value
-                })
-              }
-            />
+                  {/* Loại hình kinh doanh */}
+                  <Input
+                      label="Loại hình kinh doanh"
+                      value={formData.businessType}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              businessType: e.target.value,
+                          })
+                      }
+                  />
 
-            <Input
-              label="Ngày kết thúc NĐT chuyên nghiệp"
-              type="date"
-              value={formData.professionalEndDate}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  professionalEndDate: e.target.value
-                })
-              }
-            />
+                  {/* Nhà đầu tư chuyên nghiệp */}
+                  <div className={styles.checkboxField}>
+                      <label>
+                          <input
+                              type="checkbox"
+                              checked={formData.professionalInvestor}
+                              onChange={(e) =>
+                                  setFormData({
+                                      ...formData,
+                                      professionalInvestor:
+                                          e.target.checked,
+                                  })
+                              }
+                          />
 
-            <Input
-              label="Trạng thái"
-              value={formData.status}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  status: e.target.value
-                })
-              }
-            />
+                          <span>
+                              Nhà đầu tư chuyên nghiệp
+                          </span>
+                      </label>
+                  </div>
 
-            <Button variant='secondary' onClick={() => setIsOpenModal(false)}>
-              Đóng
-            </Button>
-            <Button 
-              variant="primary" 
-              onClick={handleCreatePartner}
-            >
-              Lưu
-            </Button>
-          </div>
-        </div>
+                  {/* Ngày bắt đầu NĐT chuyên nghiệp */}
+                  <Input
+                      label="Ngày bắt đầu NĐT chuyên nghiệp"
+                      type="date"
+                      value={formData.professionalStartDate}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              professionalStartDate: e.target.value,
+                          })
+                      }
+                  />
+
+                  {/* Ngày kết thúc NĐT chuyên nghiệp */}
+                  <Input
+                      label="Ngày kết thúc NĐT chuyên nghiệp"
+                      type="date"
+                      value={formData.professionalEndDate}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              professionalEndDate: e.target.value,
+                          })
+                      }
+                  />
+
+                  {/* Trạng thái */}
+                  <Input
+                      label="Trạng thái"
+                      value={formData.status}
+                      onChange={(e) =>
+                          setFormData({
+                              ...formData,
+                              status: e.target.value,
+                          })
+                      }
+                  />
+
+              </div>
+          </Modal>
       )}
 
       {/* PHÂN TRANG */}

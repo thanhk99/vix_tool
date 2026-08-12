@@ -100,22 +100,3 @@
   color: var(--text-secondary);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .form {
-    grid-template-columns: 1fr;
-    column-gap: 0;
-    row-gap: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .form > div {
-    grid-template-columns: 1fr;
-    row-gap: 6px;
-  }
-
-  .form label {
-    font-size: var(--font-size-xs);
-  }
-}

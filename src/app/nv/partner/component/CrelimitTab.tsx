@@ -23,13 +23,11 @@ export default function CrelimitTab({partnerId}: CrelimitTabProps) {
     const [currentPage, setCurrentPage] = useState(1);
     // Tinh toan cho phan trang
     const totalItems = creditLimits.length;
-    const totalPages = Math.ceil(totalItems / pageSize);
-
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const startIndex = (currentPage - 1) * pageSize;
-
     const currentData = creditLimits.slice(
-    startIndex,
-    startIndex + pageSize
+        startIndex,
+        startIndex + pageSize
     );
 
     const [formData, setFormData] = useState({
@@ -46,11 +44,7 @@ export default function CrelimitTab({partnerId}: CrelimitTabProps) {
         try {
             setLoading(true);
             const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/credit-limits`);
-            if(res.data.success) {
-                setCreditLimits(res.data.data);
-            } else {
-                notifyError('Lỗi', res.data.message || 'Không thể tải hạn mức!');
-            } 
+            setCreditLimits(res.data.data || []);
         } catch(err) {
             notifyError('Lỗi', 'Không thể tải danh sách hạn mức!');
         } finally {

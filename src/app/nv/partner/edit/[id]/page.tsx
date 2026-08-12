@@ -22,18 +22,18 @@ export default function PartnerEdit () {
     const [formData, setFormData] = useState<PartnersItem | null>(null);
     const [saving, setSaving] = useState(false);
     const params = useParams();
-    const id = params.id as string;
-    const partnerId = params.partnerId as string;
+    const partnerId = params.id as string;
     const [error, setError] = useState(false);
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'custommertype' | 'asset' | 'limit'>('signature');
+    
 
     useEffect(() => {
         const fetchPartner = async() => {
             try {
                 const res = await apiClient.get('/v1/capital-source/partners');
                 const data = res.data.data || res.data;
-                const found = data.find((item:PartnersItem) => item.id === id);
+                const found = data.find((item:PartnersItem) => item.id === partnerId);
                 if(found) {
                     setFormData(found);
                 } else {
@@ -46,8 +46,8 @@ export default function PartnerEdit () {
                 setLoading(false);
             }
         };
-        if(id) fetchPartner();
-    }, [id]);
+        if(partnerId) fetchPartner();
+    }, [partnerId]);
 
     // Xu ly thay doi input 
     const handleChange = (e:React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -319,7 +319,7 @@ export default function PartnerEdit () {
 
             await apiClient.put(`/v1/capital-source/partners/${formData.cusId}`, submitData);
             notifySuccess('Thành công', 'Cập nhật đối tác thành công!');
-            router.push(`/v1/partner/view/${id}`);
+            router.push(`/v1/partner/view/${partnerId}`);
         } catch(error:any){
             setError(error);
             notifyError('Lỗi', error.response?.data?.message || 'Có lỗi xảy ra!');
@@ -606,7 +606,7 @@ export default function PartnerEdit () {
                     <SignatureTab/>
                 )}
                 {activeTab === 'authorization' && (
-                    <AuthorizationTab />
+                    <AuthorizationTab partnerId={partnerId} />
                 )}
                 {activeTab === 'custommertype' && (
                     <CustommerTypeTab partnerId={partnerId} />

@@ -9,7 +9,7 @@ import Table, {TableColumn,} from "@/components/shared/Table/Table";
 import Button from "@/components/shared/Button/Button";
 import Modal from "@/components/shared/Modal/Modal";
 import Input from "@/components/shared/Input/Input";
-import Select from "@/components/shared/Select/Select";
+import Select, { SelectOption } from "@/components/shared/Select/Select";
 
 interface AssetTabProps {
     partnerId: string;
@@ -29,6 +29,33 @@ const initialFormData: AssetFormData = {
     interestPayTerm: "",
 };
 
+const ASSET_TYPE_OPTIONS: SelectOption[] = [
+    {
+        label: "Cổ phiếu",
+        value: "STOCK",
+    },
+    {
+        label: "TPCP",
+        value: "GOVERNMENT_BOND",
+    },
+    {
+        label: "TPTCTD",
+        value: "CREDIT_INSTITUTION_BOND",
+    },
+    {
+        label: "TPDN",
+        value: "CORPORATE_BOND",
+    },
+    {
+        label: "CCTG",
+        value: "CERTIFICATE_OF_DEPOSIT",
+    },
+    {
+        label: "HĐTG",
+        value: "DEPOSIT_CONTRACT",
+    },
+];
+
 export default function AssetTab({ partnerId }: AssetTabProps) {
     const [assets, setAssets] = useState<AssetItem[]>([]);
     const [loading, setLoading] = useState(false);
@@ -39,14 +66,12 @@ export default function AssetTab({ partnerId }: AssetTabProps) {
     const [pageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     // Tinh toan cho phan trang
-    const totalItems = assets.length;
-    const totalPages = Math.ceil(totalItems / pageSize);
-
+     const totalItems = assets.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const startIndex = (currentPage - 1) * pageSize;
-
     const currentData = assets.slice(
-    startIndex,
-    startIndex + pageSize
+        startIndex,
+        startIndex + pageSize
     );
 
     const fetchAssets = async () => {
@@ -55,17 +80,8 @@ export default function AssetTab({ partnerId }: AssetTabProps) {
         try {
             setLoading(true);
 
-            const res = await apiClient.get<AssetResponse>(
-                `/v1/capital-source/partners/${partnerId}/collateral-assets`
-            );
-            if (res.data.success) {
-                setAssets(res.data.data ?? []);
-            } else {
-                notifyError(
-                    "Lỗi",
-                    res.data.message || "Không thể tải danh sách tài sản bảo đảm"
-                );
-            }
+            const res = await apiClient.get<AssetResponse>(`/v1/capital-source/partners/${partnerId}/assets`);
+            setAssets(res.data.data || []);
         } catch (error: any) {
             notifyError(
                 "Lỗi",
@@ -403,32 +419,7 @@ export default function AssetTab({ partnerId }: AssetTabProps) {
                                     handleChange("assetType", value)
                                 }
                                 placeholder="-- Chọn loại TSĐB --"
-                                options={[
-                                    {
-                                        label: "Cổ phiếu",
-                                        value: "STOCK",
-                                    },
-                                    {
-                                        label: "TPCP",
-                                        value: "GOVERNMENT_BOND",
-                                    },
-                                    {
-                                        label: "TPTCTD",
-                                        value: "CREDIT_INSTITUTION_BOND",
-                                    },
-                                    {
-                                        label: "TPDN",
-                                        value: "CORPORATE_BOND",
-                                    },
-                                    {
-                                        label: "CCTG",
-                                        value: "CERTIFICATE_OF_DEPOSIT",
-                                    },
-                                    {
-                                        label: "HĐTG",
-                                        value: "DEPOSIT_CONTRACT",
-                                    },
-                                ]}
+                                options={ASSET_TYPE_OPTIONS}
                                 disabled={saving}
                                 fullWidth
                             />

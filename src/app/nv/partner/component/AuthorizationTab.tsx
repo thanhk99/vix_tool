@@ -11,13 +11,17 @@ import Button from "@/components/shared/Button/Button";
 import Modal from "@/components/shared/Modal/Modal";
 import AuthorizationForm from "./AuthorizationForm";
 
-export default function AuthorizationTab() {
+interface AuthorizationTabProps {
+    partnerId: string
+};
+
+export default function AuthorizationTab({partnerId}: AuthorizationTabProps) {
     const [author, setAuthor] = useState<AuthorizationItem[]>([]);
     const [loading, setLoading] = useState(true);
     const { notifyError, notifySuccess, notifyInfo, notifyWarning } = useNotification();
-    const params = useParams();
-    const partnerId = params.id as string;
     const [isOpenModal, setIsOpenModal] = useState(false);
+    // const params = useParams();
+    // const partnerId = params.id as string;
     
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 3;
@@ -32,7 +36,7 @@ export default function AuthorizationTab() {
     const fetchAuthor = async() => {
         try {
             const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/authorizations`);
-            setAuthor(res.data || []);
+            setAuthor(res.data.data || []);
         } catch(error:any) {
             notifyError("Không thể tải danh sách ủy quyền!");
         } finally {
@@ -131,10 +135,10 @@ export default function AuthorizationTab() {
             key: "authedPosition",
             title: "Chức vụ người được UQ",
         },
-        // {
-        //     key: "scope",
-        //     title: "Phạm vi UQ",
-        // },
+        {
+            key: "scope",
+            title: "Phạm vi UQ",
+        },
         {
             key: "status",
             title: "Trạng thái",
