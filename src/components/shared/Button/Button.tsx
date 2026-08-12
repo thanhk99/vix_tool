@@ -3,7 +3,7 @@
 import React from 'react';
 import styles from './Button.module.css';
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline' | 'bordernone';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

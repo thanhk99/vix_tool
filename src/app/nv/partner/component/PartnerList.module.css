@@ -9,14 +9,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-lg);
 }
 
 .header .actions {
   display: flex;
   justify-content: flex-start;
   gap: var(--space-4);
-  padding: 0 0 var(--space-3) 0
+  padding: 0 0 var(--space-1) 0
 }
 
 .addPartnerForm {
@@ -41,38 +40,147 @@
   border-color: var(--color-primary);
 }
 
+/* ============================================
+   Table Container
+   ============================================ */
 .tableContainer {
-  overflow-x: auto;
+    width: 100%;
+    overflow-x: auto;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--surface);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: var(--color-bg);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+.tableContainer table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+    min-width: 1200px;
+    table-layout: fixed;
 }
 
-.table th,
-.table td {
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
+.tableContainer thead {
+    background: var(--border);
 }
 
-.table th {
-  background-color: var(--color-bg-secondary);
-  font-weight: 600;
-  color: var(--color-text-secondary);
+.tableContainer thead th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: var(--font-size-xs);
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    z-index: 10;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+    min-height: 40px;
+    max-width: 150px;
 }
 
-.table tr:last-child td {
-  border-bottom: none;
+.tableContainer tbody tr {
+    transition: background-color 0.15s ease;
+    border-bottom: 1px solid var(--surface);
 }
 
-.table tr:hover {
-  background-color: rgba(0, 0, 0, 0.03);
+.tableContainer tbody tr:hover {
+    background: var(--surface);
 }
 
+.tableContainer tbody tr:last-child {
+    border-bottom: none;
+}
+
+.tableContainer tbody td {
+    padding: 8px 12px;
+    color: var(--text-primary);
+    vertical-align: middle;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Cho phép hover để xem full text */
+.tableContainer tbody td:hover {
+    overflow: visible;
+    white-space: normal;
+    word-break: break-word;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 5;
+    cursor: pointer;
+}
+
+/* ============================================
+   Cột STT
+   ============================================ */
+.tableContainer tbody td:first-child,
+.tableContainer thead th:first-child {
+    padding: 4px 6px;
+    text-align: center;
+    width: 40px;
+}
+
+/* ============================================
+   Cột Thao tác
+   ============================================ */
+.tableContainer tbody td:last-child,
+.tableContainer thead th:last-child {
+    padding: 4px 8px;
+    text-align: center;
+    width: 150px;
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+.tableContainer::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+    background: var(--background);
+    border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+    background: var(--background);
+    border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* ============================================
+   Loading State
+   ============================================ */
+.tableLoading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+.tableEmpty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+    font-size: 14px;
+}
 .status {
   padding: var(--space-1);
   border-radius: var(--radius-sm);
@@ -85,15 +193,27 @@
   color: #166534;
 }
 
-.pending {
-  background-color: #fef3c7;
-  color: #92400e;
+.actionButtons {
+  display: flex;
+  gap: var(--space-2);
 }
 
-.inactive {
-  background-color: #fee2e2;
-  color: #b91c1c;
+.actionButtons .pen {
+  color: var(--warning);
 }
+
+.actionButtons .pen:hover {
+  cursor: pointer;
+}
+
+.actionButtons .delete {
+  color: var(--danger);
+}
+
+.actionButtons .pen:hover {
+  cursor: pointer;
+}
+
 /* ===== SEARCH ===== */
 .searchWrapper {
   position: relative;
@@ -176,7 +296,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-4) var(--space-4) 0;
   flex-wrap: wrap;
   gap: var(--space-3);
 }
@@ -228,4 +347,253 @@
 .pageActive:hover {
   background: var(--primary);
   color: white;
+}
+/* =========================================
+   CHI TIẾT ĐỐI TÁC
+   ========================================= */
+
+.partnerDetail {
+  margin-top: var(--space-2);
+  background: #ffffff;
+  border-top: 1px solid var(--border);
+  padding: var(--space-3) var(--space-4) var(--space-5);
+  width: 100%;
+}
+
+/* Layout tổng:
+   - Bên trái: thông tin đối tác
+   - Bên phải: thông tin quản lý
+*/
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(220px, 1fr);
+  gap: var(--space-6);
+  width: 100%;
+}
+
+/* =========================================
+   CỘT
+   ========================================= */
+
+.detailColumn {
+  min-width: 0;
+}
+
+/* Cột phải */
+.detailGrid > .detailColumn:last-child {
+  border-left: 1px solid #e5e7eb;
+  padding-left: var(--space-6);
+}
+
+/* =========================================
+   HEADER THÔNG TIN ĐỐI TÁC
+   ========================================= */
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: var(--space-3);
+
+  border-bottom: 1px solid var(--border);
+}
+
+.detailHeader h3 {
+  position: relative;
+
+  margin: 0;
+  padding-left: var(--space-2);
+
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary);
+}
+
+/* Thanh màu nhỏ bên trái tiêu đề */
+.detailHeader h3::before {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  top: 1px;
+
+  width: var(--space-1);
+  height: var(--space-4);
+
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+/* =========================================
+   NÚT X
+   ========================================= */
+
+.closeDetail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 30px;
+  height: 30px;
+
+  padding: 0;
+
+  border: none;
+  background: transparent;
+
+  color: #6b7280;
+  cursor: pointer;
+
+  border-radius: 4px;
+
+  transition: all 0.15s ease;
+}
+
+.closeDetail:hover {
+  background: #f3f4f6;
+}
+
+/* =========================================
+   GRID 3 CỘT
+   ========================================= */
+
+.detailGrid3Col {
+  display: grid;
+
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  column-gap: 20px;
+  row-gap: 12px;
+
+  width: 100%;
+}
+
+/* =========================================
+   TỪNG FIELD
+   ========================================= */
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+
+  gap: 5px;
+}
+
+/* Label */
+.detailItem span {
+  display: block;
+
+  font-size: 11px;
+  font-weight: 500;
+
+  color: #4b5563;
+
+  line-height: 1.3;
+}
+
+/* Giá trị */
+.detailItem strong {
+  display: flex;
+  align-items: center;
+
+  min-height: 30px;
+
+  padding: 6px 9px;
+
+  background: #ffffff;
+
+  border: 1px solid #d9dee7;
+  border-radius: 3px;
+
+  color: #374151;
+
+  font-size: 12px;
+  font-weight: 400;
+
+  line-height: 1.3;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Khi nội dung dài */
+.detailItem strong:hover {
+  overflow: visible;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* =========================================
+   STATUS
+   ========================================= */
+
+.statusText {
+  font-weight: 600 !important;
+  width: 20%;
+}
+
+.statusText.active {
+  color:  var(--success) !important;
+  background: #dcfce7 !important;
+  border-color: #bbf7d0 !important;
+}
+
+.statusText.pending {
+  color: var(--warning) !important;
+  background: var(--background) !important;
+  border-color: #fde68a !important;
+}
+
+.statusText.inactive {
+  color: var(--danger) !important;
+  background: var(--background) !important;
+  border-color: #fecaca !important;
+}
+
+/* =========================================
+   THÔNG TIN QUẢN LÝ
+   ========================================= */
+
+.detailSectionTitle {
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+
+  border-bottom: 1px solid var(--border);
+}
+
+.detailSectionTitle h4 {
+  position: relative;
+
+  margin: 0;
+  padding-left: 10px;
+
+  font-size: var(--font-size-sm);
+  font-weight:var(--font-weight-bold);
+
+  color: var(--primary);
+}
+
+/* Thanh màu nhỏ */
+.detailSectionTitle h4::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 1px;
+
+  width: 3px;
+  height: 17px;
+
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+/* Các field bên phải */
+.detailGrid > .detailColumn:last-child .detailItem {
+  margin-bottom: var(--space-3);
 }

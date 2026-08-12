@@ -7,7 +7,7 @@ import Table, { TableColumn } from '@/components/shared/Table/Table';
 import Input from '@/components/shared/Input/Input';
 import { CreatePartnerRequest, PartnersItem } from '@/types/funding.types';
 import apiClient from '@/lib/api/client';
-import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pen, Search, Trash2, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNotification } from '@/hooks/useNotification';
 import { useRouter } from 'next/navigation';
@@ -67,7 +67,9 @@ export default function PartnerList() {
   const currentData = filteredPartners.slice(startIndex, startIndex + pageSize);
   // Router 
   const router = useRouter();
-
+  
+  // Click row
+  const [selectedPartner, setSelectedPartner] = useState<PartnersItem | null>(null);
   // GET
   const fetchPartners = async () => {
     try {
@@ -114,44 +116,55 @@ export default function PartnerList() {
     {
       key: "stt",
       title: "STT",
-      width: 60,
+      width:40,
       render: (_, __, index) => startIndex + index + 1,
     },
     {
       key: "cusId",
       title: "Mã KH",
+      width:100
     },
     {
       key: "branchCusId",
       title: "Mã đơn vị GD",
+      width:120
     },
     {
       key: "cusName",
       title: "Tên KH",
+      width:300
     },
     {
       key: "idCode",
       title: "Số ĐKKD/CCCD",
+      width:120
+
     },
     {
       key: "fistIssueDate",
       title: "Ngày cấp lần đầu",
+      width:120
     },
     {
       key: "lastIssueDate",
       title: "Ngày cấp cuối",
+      width:120
     },
     {
       key: "issueBy",
       title: "Nơi cấp",
+      width:100
     },
     {
       key: "opLiscenseNo",
       title: "GP hoạt động",
+      width: 100
+
     },
     {
       key: "opIssueDate",
       title: "Ngày cấp",
+      width:120
     },
     {
       key: "status",
@@ -161,23 +174,28 @@ export default function PartnerList() {
           {value as string}
         </span>
       ),
+      width:100
     },
     {
       key: "lastUpdated",
       title: "Ngày chỉnh sửa",
+      width: 120
     },
     {
       key: "updatedBy",
       title: "User thực hiện",
+      width:120
     },
     {
       key: "actions",
       title: "Thao tác",
-      width: 150,
+      width: 50,
       render: (_, record) => (
         <div className={styles.actionButtons}>
-          <Button variant="outline" size="sm" onClick={() => router.push(`/nv/partner/edit/${record.id}`)} >Sửa</Button>
-          <Button variant="danger" size="sm" style={{ marginLeft: 3 }}>Xóa</Button>
+          {/* <Button variant="outline" size="sm" onClick={() => router.push(`/nv/partner/edit/${record.id}`)} >Sửa</Button>
+          <Button variant="danger" size="sm" style={{ marginLeft: 3 }}>Xóa</Button> */}
+          <Pen size={18} className={styles.pen} onClick={() => router.push(`/nv/partner/edit/${record.id}`)}/>
+          <Trash2 size={18} className={styles.delete}/>
         </div>
       ),
     },
@@ -244,6 +262,18 @@ export default function PartnerList() {
           <Button variant='primary' onClick={() => setIsOpenModal(true)}>
             Thêm mới
           </Button>
+
+          <Button variant='primary' disabled={!selectedPartner}
+          onClick={() => {
+            if(!selectedPartner) return;
+            router.push(`/nv/partner/view/${selectedPartner.id}`)
+          }}>Xem</Button>
+
+          <Button variant='primary' disabled={!selectedPartner}
+            onClick={() => {
+              if(!selectedPartner) return;
+            }}
+          >Xóa</Button>
         </div>
       </div>
       
@@ -254,9 +284,10 @@ export default function PartnerList() {
           data={currentData}
           rowKey="id"
           isLoading={loading}
+          onRowClick={(partners) => setSelectedPartner(partners)}
         />
       </div>
-
+      
       {/*Modal */}
       {isOpenModal && (
           <Modal
@@ -589,6 +620,152 @@ export default function PartnerList() {
             </button>
           </div>
         </div>
+      )}
+
+      {/*Chi tiet */}
+      {selectedPartner && (
+      <div className={styles.partnerDetail}>
+        <div className={styles.detailGrid}>
+          {/* CỘT TRÁI - Thông tin đối tác */}
+          <div className={styles.detailColumn}>
+            <div className={styles.detailHeader}>
+              <h3>THÔNG TIN ĐỐI TÁC</h3>
+              <button
+                type="button"
+                onClick={() => setSelectedPartner(null)}
+                className={styles.closeDetail}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.detailGrid3Col}>
+              <div className={styles.detailItem}>
+                <span>Mã KH</span>
+                <strong>{selectedPartner.cusId || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Mã đơn vị GD</span>
+                <strong>{selectedPartner.branchCusId || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Tên KH</span>
+                <strong>{selectedPartner.cusName || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Tên viết tắt</span>
+                <strong>{selectedPartner.shortName || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Số ĐKKD/CCCD</span>
+                <strong>{selectedPartner.idCode || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Địa chỉ</span>
+                <strong>{selectedPartner.address || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Ngày cấp lần đầu</span>
+                <strong>{selectedPartner.fistIssueDate || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Ngày cấp cuối</span>
+                <strong>{selectedPartner.lastIssueDate || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Nơi cấp</span>
+                <strong>{selectedPartner.issueBy || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Giấy phép hoạt động</span>
+                <strong>{selectedPartner.opLiscenseNo || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Ngày cấp giấy phép</span>
+                <strong>{selectedPartner.opIssueDate || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Số điện thoại</span>
+                <strong>{selectedPartner.mobile || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Email</span>
+                <strong>{selectedPartner.email || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Website</span>
+                <strong>{selectedPartner.website || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Loại khách hàng</span>
+                <strong>{selectedPartner.cusType || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Loại hình kinh doanh</span>
+                <strong>{selectedPartner.businessType || "-"}</strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Nhà đầu tư chuyên nghiệp</span>
+                <strong>
+                  {selectedPartner.professionalInvestor ? "Có" : "Không"}
+                </strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Ngày bắt đầu NĐT chuyên nghiệp</span>
+                <strong>
+                  {selectedPartner.professionalStartDate || "-"}
+                </strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Ngày kết thúc NĐT chuyên nghiệp</span>
+                <strong>
+                  {selectedPartner.professionalEndDate || "-"}
+                </strong>
+              </div>
+
+              <div className={styles.detailItem}>
+                <span>Trạng thái</span>
+                <strong className={`${styles.statusText} ${getStatusClass(selectedPartner.status)}`}>
+                  {selectedPartner.status || "-"}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          {/* CỘT PHẢI - Thông tin quản lý */}
+          <div className={styles.detailColumn}>
+            <div className={styles.detailSectionTitle}>
+              <h4>THÔNG TIN QUẢN LÝ</h4>
+            </div>
+            <div className={styles.detailItem}>
+              <span>Ngày chỉnh sửa</span>
+              <strong>{selectedPartner.lastUpdated || "-"}</strong>
+            </div>
+            <div className={styles.detailItem}>
+              <span>User thực hiện</span>
+              <strong>{selectedPartner.updatedBy || "-"}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
       )}
     </div>
   );

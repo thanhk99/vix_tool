@@ -1,5 +1,5 @@
 import Sidebar from '@/components/nv/Sidebar/Sidebar';
-import Header from '@/components/bgd/Header/Header';
+import Header from '@/components/nv/Header/Header';
 
 export const metadata = {
   title: 'Capital Source Portal',

@@ -10,21 +10,36 @@ import { PartnersItem } from "@/types/funding.types";
 // import SignatureTab from "@/app/nv/partner/component/partners/SignatureTab";
 // import AuthorizationTab from "@/app/nv/partner/component/partners/AuthorizationTab";
 import { useNotification } from "@/hooks/useNotification";
+import SignatureTab from "../../component/SignatureTab";
+import AssetTab from "../../component/AssetTab";
+import CrelimitTab from "../../component/CrelimitTab";
+import CustommerTypeTab from "../../component/CustommerTypeTab";
+import AuthorizationTab from "../../component/AuthorizationTab";
+import Button from "@/components/shared/Button/Button";
 
 export default function PartnerView() {
     const params = useParams();
     const router = useRouter();
-    const id = params.id as string;
+    const partnerId = params.id as string;
     const [partner, setPartner] = useState<PartnersItem | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'asset' | 'limit'>('signature');
+    const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'custommertype' | 'asset' | 'limit'>('signature');
     const { notifyError } = useNotification();
+
+    // getStatusClass 
+    const STATUS_CLASS = {
+        ACTIVE: styles.active,
+        PENDING: styles.pending,
+        INACTIVE: styles.inactive,
+    };
+
+    const getStatusClass = (status: string) => STATUS_CLASS[status as keyof typeof STATUS_CLASS] ?? "";
 
     useEffect(() => {
         const fetchPartner = async() => {
             try {
-                const res = await apiClient.get(`/v1/capital-source/partners/${id}`);
+                const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}`);
                 setPartner(res.data.data || res.data)
             } catch (error) {
                 setError('Không thể tải thông tin.');
@@ -34,8 +49,8 @@ export default function PartnerView() {
                 setLoading(false);
             }
         };
-        if(id) fetchPartner();
-    }, [id]);
+        if(partnerId) fetchPartner();
+    }, [partnerId]);
 
     // VERIFY: Kiểm tra dữ liệu partner
     if (!loading && !error && !partner) {
@@ -47,15 +62,12 @@ export default function PartnerView() {
     if (!partner) return <div className={styles.error}>Không tìm thấy đối tác</div>;
     return (
         <div className={styles.container}>
-            {/* Header */}
-            <div className={styles.header}>
-                <UsersRound size={25}/>
-                <h1>Thông tin đối tác</h1>
-            </div>
             {/* Title */}
             <div className={styles.title}>
+                <UsersRound size={25}/>
                 <h1>Thông tin chung</h1>
             </div>
+
             {/* Detail Information */}
             <div className={styles.content}>
                 <div className={styles.row}>
@@ -63,7 +75,7 @@ export default function PartnerView() {
                     <div className={styles.value}>{partner.cusId}</div>
                 </div>
                 <div className={styles.row}>
-                    <div className={styles.label}>Mã GD</div>
+                    <div className={styles.label}>Mã đơn vị GD</div>
                     <div className={styles.value}>{partner.branchCusId}</div>
                 </div>
                 <div className={styles.row}>
@@ -75,13 +87,14 @@ export default function PartnerView() {
                     <div className={styles.value}>{partner.shortName}</div>
                 </div>
                 <div className={styles.row}>
-                    <div className={styles.label}>Địac chỉ</div>
+                    <div className={styles.label}>Địa chỉ</div>
                     <div className={styles.value}>{partner.address}</div>
                 </div>
                 <div className={styles.row}>
                     <div className={styles.label}>Số ĐKKD/CCCD</div>
                     <div className={styles.value}>{partner.idCode}</div>
-                </div><div className={styles.row}>
+                </div>
+                <div className={styles.row}>
                     <div className={styles.label}>Ngày cấp lần đầu</div>
                     <div className={styles.value}>{partner.fistIssueDate}</div>
                 </div>
@@ -92,18 +105,20 @@ export default function PartnerView() {
                 <div className={styles.row}>
                     <div className={styles.label}>Nơi cấp</div>
                     <div className={styles.value}>{partner.issueBy}</div>
-                </div><div className={styles.row}>
+                </div>
+                <div className={styles.row}>
                     <div className={styles.label}>Số lần thay đổi</div>
                     <div className={styles.value}>{partner.changeCount}</div>
                 </div>
                 <div className={styles.row}>
-                    <div className={styles.label}>GP hoạt động </div>
+                    <div className={styles.label}>GP hoạt động</div>
                     <div className={styles.value}>{partner.opLiscenseNo}</div>
                 </div>
                 <div className={styles.row}>
-                    <div className={styles.label}>Ngày cấp</div>
+                    <div className={styles.label}>Ngày cấp GP</div>
                     <div className={styles.value}>{partner.opIssueDate}</div>
-                </div><div className={styles.row}>
+                </div>
+                <div className={styles.row}>
                     <div className={styles.label}>Điện thoại</div>
                     <div className={styles.value}>{partner.mobile}</div>
                 </div>
@@ -115,72 +130,93 @@ export default function PartnerView() {
                     <div className={styles.label}>Website</div>
                     <div className={styles.value}>{partner.website}</div>
                 </div>
+                <div className={styles.row}>
+                    <div className={styles.label}>Loại khách hàng</div>
+                    <div className={styles.value}>{partner.cusType}</div>
+                </div>
+                <div className={styles.row}>
+                    <div className={styles.label}>Loại hình kinh doanh</div>
+                    <div className={styles.value}>{partner.businessType}</div>
+                </div>
+                <div className={styles.row}>
+                    <div className={styles.label}>Nhà đầu tư chuyên nghiệp</div>
+                    <div className={styles.value}>{partner.professionalInvestor ? "Có" : "Không"}</div>
+                </div>
+                <div className={styles.row}>
+                    <div className={styles.label}>Ngày bắt đầu NĐT chuyên nghiệp</div>
+                    <div className={styles.value}>{partner.professionalStartDate}</div>
+                </div>
+                <div className={styles.row}>
+                    <div className={styles.label}>Ngày kết thúc NĐT chuyên nghiệp</div>
+                    <div className={styles.value}>{partner.professionalEndDate}</div>
+                </div>
+                <div className={styles.row}>
+                    <div className={styles.label}>Trạng thái</div>
+                    <div className={styles.value}>
+                        <span className={`${styles.status} ${getStatusClass(partner.status)}`}>
+                            {partner.status}
+                        </span>
+                    </div>
+                </div>
             </div>
 
             {/* Tabs */}
             <div className={styles.tabs}>
-                <button 
+                <Button variant="bordernone"
                     className={`${styles.tab} ${activeTab === 'signature' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('signature')}
                 >
                     Chữ ký
-                </button>
-                <button 
+                </Button>
+                <Button variant="bordernone"
                     className={`${styles.tab} ${activeTab === 'authorization' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('authorization')}
                 >
                     UQ / Người đại diện PL
-                </button>
-                <button 
+                </Button>
+                <Button variant="bordernone"
+                    className={`${styles.tab} ${activeTab === 'custommertype' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('custommertype')}
+                >
+                    Loại hình KH
+                </Button>
+                <Button variant="bordernone"
                     className={`${styles.tab} ${activeTab === 'limit' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('limit')}
                 >
                     QL hạn mức
-                </button>
-                <button 
+                </Button>
+                <Button variant="bordernone"
                     className={`${styles.tab} ${activeTab === 'asset' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('asset')}
                 >
                     TSĐB
-                </button>
+                </Button>
             </div>
 
             {/* Tab Content */}
-            {/* <div className={styles.tabContent}>
+            <div className={styles.tabContent}>
                 {activeTab === 'signature' && (
-                    <SignatureTab 
-                        partnerId={partner.id}
-                        isReadOnly={true}
-                    />
+                    <SignatureTab/>
                 )}
-
                 {activeTab === 'authorization' && (
-                    <AuthorizationTab 
-                        partnerId={partner.id}
-                        isReadOnly={true}
-                    />
-                )} */}
-
-                {/* {activeTab === 'limit' && (
-                    <PartnerLimitTab 
-                        partnerId={partner.id}
-                        isReadOnly={true}
-                    />
+                    <AuthorizationTab partnerId={partnerId} />
                 )}
-
+                {activeTab === 'custommertype' && (
+                    <CustommerTypeTab partnerId={partnerId} />
+                )}
+                {activeTab === 'limit' && (
+                    <CrelimitTab partnerId={partnerId}/>
+                )}
                 {activeTab === 'asset' && (
-                    <PartnerAssetTab 
-                        partnerId={partner.id}
-                        isReadOnly={true}
-                    />
-                )} */}
-            {/* </div> */}
+                    <AssetTab partnerId={partnerId}/>
+                )}
+            </div>
             {/* Footer */}
             <div className={styles.footer}>
-                <button onClick={() => router.back()} className={styles.backBtn}>
-                    <X size={15}/>
+                <Button variant="outline" onClick={() => router.back()} className={styles.backBtn}>
                     Đóng
-                </button>
+                </Button>
             </div>
         </div>
     )

@@ -335,13 +335,9 @@ export default function PartnerEdit () {
     return (
         <div className={styles.container}>
             <form onSubmit={handleSubmit} className={styles.form}>
-                {/* Header */}
-                <div className={styles.header}>
-                    <UsersRound size={25}/>
-                    <h1>Thông tin đối tác</h1>
-                </div>
                 {/* Title */}
                 <div className={styles.title}>
+                    <UsersRound size={25}/>
                     <h1>Thông tin chung</h1>
                 </div>
                 <div className={styles.content}>
@@ -570,36 +566,36 @@ export default function PartnerEdit () {
 
             {/*Tab */}
             <div className={styles.tabs}>
-                <button 
+                <Button variant="bordernone"
                     className={`${styles.tab} ${activeTab === 'signature' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('signature')}
                 >
                     Chữ ký
-                </button>
-                <button 
+                </Button>
+                <Button variant="bordernone"
                     className={`${styles.tab} ${activeTab === 'authorization' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('authorization')}
                 >
                     UQ / Người đại diện PL
-                </button>
-                <button 
+                </Button>
+                <Button variant="bordernone"
                     className={`${styles.tab} ${activeTab === 'custommertype' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('custommertype')}
                 >
                     Loại hình KH
-                </button>
-                <button 
+                </Button>
+                <Button variant="bordernone"
                     className={`${styles.tab} ${activeTab === 'limit' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('limit')}
                 >
                     QL hạn mức
-                </button>
-                <button 
+                </Button>
+                <Button variant="bordernone"
                     className={`${styles.tab} ${activeTab === 'asset' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('asset')}
                 >
                     TSĐB
-                </button>
+                </Button>
             </div>
             <div className={styles.tabContent}>
                 {activeTab === 'signature' && (

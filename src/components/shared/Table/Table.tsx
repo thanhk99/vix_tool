@@ -16,6 +16,7 @@ interface TableProps<T> {
   isLoading?: boolean;
   emptyText?: string;
   caption?: string;
+  onRowClick?: (row:T) => void;
 }
 
 export default function Table<T>({
@@ -25,6 +26,7 @@ export default function Table<T>({
   isLoading = false,
   emptyText = 'Không có dữ liệu',
   caption,
+  onRowClick
 }: TableProps<T>) {
   function getRowKey(row: T, index: number): string {
     if (typeof rowKey === 'function') return rowKey(row);
@@ -71,7 +73,7 @@ export default function Table<T>({
             </tr>
           ) : (
             data.map((row, rowIndex) => (
-              <tr key={getRowKey(row, rowIndex)} className={styles.tr}>
+              <tr key={getRowKey(row, rowIndex)} onClick={() => onRowClick?.(row)} style={{cursor: onRowClick ? 'pointer' : 'default'}} className={styles.tr}>
                 {columns.map((col) => (
                   <td
                     key={col.key}
