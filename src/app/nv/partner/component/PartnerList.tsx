@@ -7,7 +7,7 @@ import Table, { TableColumn } from '@/components/shared/Table/Table';
 import Input from '@/components/shared/Input/Input';
 import { CreatePartnerRequest, PartnersItem } from '@/types/funding.types';
 import apiClient from '@/lib/api/client';
-import { ChevronLeft, ChevronRight, Pen, Search, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pen, Trash2, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNotification } from '@/hooks/useNotification';
 import { useRouter } from 'next/navigation';
@@ -57,7 +57,7 @@ export default function PartnerList() {
     professionalStartDate: "",
     professionalEndDate: "",
     status: "ACTIVE",
-});
+  });
   const userId = useAuthStore((state) => state.userId);
 
   // Tinh toan cho phan trang
@@ -70,6 +70,23 @@ export default function PartnerList() {
   
   // Click row
   const [selectedPartner, setSelectedPartner] = useState<PartnersItem | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  // Click vao dong
+  const handleRowClick = (record: PartnersItem) => {
+    if(selectedPartner?.id === record.id) {
+      setSelectedRowId(null);
+      setSelectedPartner(null);
+    } else {
+      setSelectedRowId(record.id);
+      setSelectedPartner(record);
+    }
+  };
+
+  // click X detail
+  const handleCloseDetail = () => {
+    setSelectedRowId(null);
+    setSelectedPartner(null);
+  };
   // GET
   const fetchPartners = async () => {
     try {
@@ -214,6 +231,7 @@ export default function PartnerList() {
     setCurrentPage(page);
   };
 
+
   // POST
   const handleCreatePartner = async () => {
     try {
@@ -284,7 +302,9 @@ export default function PartnerList() {
           data={currentData}
           rowKey="id"
           isLoading={loading}
-          onRowClick={(partners) => setSelectedPartner(partners)}
+          // onRowClick={(partners) => {setSelectedPartner(partners), handleRowClick}}
+          onRowClick={handleRowClick}
+          selectedRowkey={selectedRowId}
         />
       </div>
       
@@ -632,7 +652,8 @@ export default function PartnerList() {
               <h3>THÔNG TIN ĐỐI TÁC</h3>
               <button
                 type="button"
-                onClick={() => setSelectedPartner(null)}
+                // onClick={() => {setSelectedPartner(null), handleCloseDetail}}
+                onClick={handleCloseDetail}
                 className={styles.closeDetail}
               >
                 <X size={18} />

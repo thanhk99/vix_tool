@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './Table.module.css';
 
 export interface TableColumn<T> {
@@ -17,6 +17,8 @@ interface TableProps<T> {
   emptyText?: string;
   caption?: string;
   onRowClick?: (row:T) => void;
+  highlightRow?: boolean;
+  selectedRowkey?: string | null;
 }
 
 export default function Table<T>({
@@ -26,8 +28,11 @@ export default function Table<T>({
   isLoading = false,
   emptyText = 'Không có dữ liệu',
   caption,
-  onRowClick
+  onRowClick,
+  highlightRow=true,
+  selectedRowkey= null
 }: TableProps<T>) {
+
   function getRowKey(row: T, index: number): string {
     if (typeof rowKey === 'function') return rowKey(row);
     const value = row[rowKey];
@@ -72,19 +77,29 @@ export default function Table<T>({
               </td>
             </tr>
           ) : (
-            data.map((row, rowIndex) => (
-              <tr key={getRowKey(row, rowIndex)} onClick={() => onRowClick?.(row)} style={{cursor: onRowClick ? 'pointer' : 'default'}} className={styles.tr}>
-                {columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className={styles.td}
-                    style={{ textAlign: col.align ?? 'left' }}
-                  >
-                    {getCellValue(row, col, rowIndex)}
-                  </td>
-                ))}
-              </tr>
-            ))
+            data.map((row, rowIndex) => {
+              const key = getRowKey(row, rowIndex);
+              const isSelected = highlightRow && selectedRowkey === key;
+
+              return (
+                <tr
+                  key={key}
+                  onClick={() => onRowClick?.(row)}
+                  style={{ cursor: onRowClick || highlightRow ? 'pointer' : 'default' }}
+                  className={`${styles.tr} ${isSelected ? styles.selectedRow : ''}`}
+                >
+                  {columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={styles.td}
+                      style={{ textAlign: col.align ?? 'left' }}
+                    >
+                      {getCellValue(row, col, rowIndex)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

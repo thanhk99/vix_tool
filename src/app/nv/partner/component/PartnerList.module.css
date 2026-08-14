@@ -138,6 +138,26 @@
     width: 150px;
 }
 
+.tableContainer :global(td:last-child) {
+  position: sticky;
+  right: 0;
+  z-index: 5;
+  background-color: var(--surface);
+  min-width: 120px;
+}
+
+.tableContainer :global(th:last-child) {
+  position: sticky;
+  right: 0;
+  z-index: 5;
+  background-color: #f8fafc;
+  min-width: 120px;
+}
+
+.tableContainer :global(th:last-child) {
+  z-index: 15;
+}
+
 /* ============================================
    Scrollbar
    ============================================ */

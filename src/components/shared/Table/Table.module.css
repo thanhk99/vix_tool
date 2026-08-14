@@ -51,6 +51,11 @@
   background-color: var(--background);
 }
 
+.selectedRow {
+  background-color: #dbeafe !important;  /* Màu xanh nhạt */
+  border-left: 3px solid #2563eb;        /* Viền trái xanh */
+}
+
 .td {
   padding: var(--space-3) var(--space-4);
   color: var(--text-primary);

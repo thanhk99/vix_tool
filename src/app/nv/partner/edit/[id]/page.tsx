@@ -25,7 +25,7 @@ export default function PartnerEdit () {
     const partnerId = params.id as string;
     const [error, setError] = useState(false);
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'custommertype' | 'asset' | 'limit'>('signature');
+    const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'custommertype'>('signature');
     
 
     useEffect(() => {
@@ -584,18 +584,6 @@ export default function PartnerEdit () {
                 >
                     Loại hình KH
                 </Button>
-                <Button variant="bordernone"
-                    className={`${styles.tab} ${activeTab === 'limit' ? styles.tabActive : ''}`}
-                    onClick={() => setActiveTab('limit')}
-                >
-                    QL hạn mức
-                </Button>
-                <Button variant="bordernone"
-                    className={`${styles.tab} ${activeTab === 'asset' ? styles.tabActive : ''}`}
-                    onClick={() => setActiveTab('asset')}
-                >
-                    TSĐB
-                </Button>
             </div>
             <div className={styles.tabContent}>
                 {activeTab === 'signature' && (
@@ -606,12 +594,6 @@ export default function PartnerEdit () {
                 )}
                 {activeTab === 'custommertype' && (
                     <CustommerTypeTab partnerId={partnerId} />
-                )}
-                {activeTab === 'limit' && (
-                    <CrelimitTab partnerId={partnerId}/>
-                )}
-                {activeTab === 'asset' && (
-                    <AssetTab partnerId={partnerId}/>
                 )}
             </div>
 

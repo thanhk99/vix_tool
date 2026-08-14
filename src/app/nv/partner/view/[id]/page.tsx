@@ -180,18 +180,6 @@ export default function PartnerView() {
                 >
                     Loại hình KH
                 </Button>
-                <Button variant="bordernone"
-                    className={`${styles.tab} ${activeTab === 'limit' ? styles.tabActive : ''}`}
-                    onClick={() => setActiveTab('limit')}
-                >
-                    QL hạn mức
-                </Button>
-                <Button variant="bordernone"
-                    className={`${styles.tab} ${activeTab === 'asset' ? styles.tabActive : ''}`}
-                    onClick={() => setActiveTab('asset')}
-                >
-                    TSĐB
-                </Button>
             </div>
 
             {/* Tab Content */}
@@ -204,12 +192,6 @@ export default function PartnerView() {
                 )}
                 {activeTab === 'custommertype' && (
                     <CustommerTypeTab partnerId={partnerId} />
-                )}
-                {activeTab === 'limit' && (
-                    <CrelimitTab partnerId={partnerId}/>
-                )}
-                {activeTab === 'asset' && (
-                    <AssetTab partnerId={partnerId}/>
                 )}
             </div>
             {/* Footer */}
