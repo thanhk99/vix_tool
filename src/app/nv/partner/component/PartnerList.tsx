@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { useNotification } from '@/hooks/useNotification';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/shared/Modal/Modal';
+import ViewPartner from './ViewPartner';
 
 export default function PartnerList() {
   const [partners, setPartners] = useState<PartnersItem[]>([]);
@@ -67,6 +68,17 @@ export default function PartnerList() {
   const currentData = filteredPartners.slice(startIndex, startIndex + pageSize);
   // Router 
   const router = useRouter();
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingPartner, setViewingPartner] = useState<PartnersItem | null>(null);
+  const handleViewPartner = (partner: PartnersItem) => {
+    setViewingPartner(partner);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setViewingPartner(null);
+  };
   
   // Click row
   const [selectedPartner, setSelectedPartner] = useState<PartnersItem | null>(null);
@@ -284,7 +296,7 @@ export default function PartnerList() {
           <Button variant='primary' disabled={!selectedPartner}
           onClick={() => {
             if(!selectedPartner) return;
-            router.push(`/nv/partner/view/${selectedPartner.id}`)
+            handleViewPartner(selectedPartner);
           }}>Xem</Button>
 
           <Button variant='primary' disabled={!selectedPartner}
@@ -605,6 +617,22 @@ export default function PartnerList() {
 
               </div>
           </Modal>
+      )}
+
+      {isViewModalOpen && viewingPartner && (
+        <Modal
+          isOpen={isViewModalOpen}
+          onClose={handleCloseViewModal}
+          title=""
+          size="xl"
+        >
+          <ViewPartner
+            partner={viewingPartner}
+            partnerId={viewingPartner.id}
+            getStatusClass={getStatusClass}
+            onClose={handleCloseViewModal}
+          />
+        </Modal>
       )}
 
       {/* PHÂN TRANG */}
