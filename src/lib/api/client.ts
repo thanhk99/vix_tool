@@ -43,30 +43,18 @@ apiClient.interceptors.response.use(
       // Handle logout or token refresh here
       useAuthStore.getState().clearAuth();
       if (typeof window !== 'undefined') {
-        window.location.href = `http://${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'company.local'}:3000`;
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN;
+        if (baseDomain && window.location.hostname !== baseDomain) {
+          window.location.href = `${window.location.protocol}//${baseDomain}${window.location.port ? ':' + window.location.port : ''}`;
+        } else {
+          window.location.href = '/';
+        }
       }
     }
     return Promise.reject(error.response?.data || error);
   }
 );
 
-// Add a request interceptor to log requests for debugging
-apiClient.interceptors.request.use(
-  (config) => {
-    // For debugging purposes only - remove in production
-    if (process.env.NODE_ENV === 'development') {
-      console.log('API Request:', {
-        url: config.url,
-        method: config.method,
-        headers: config.headers,
-        data: config.data,
-      });
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+
 
 export default apiClient;

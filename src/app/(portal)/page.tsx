@@ -39,13 +39,13 @@ export default function LoginPage() {
           setAuth(res.data.accessToken);
           router.push('/select-department');
         } else if (res.data.accessToken) {
-          setAuth(res.data.accessToken, res.data.route, res.data.user?.id, res.data.user?.fullName);
           const payload = JSON.parse(
-          atob(res.data.accessToken.split(".")[1])
-      );
-      if (payload.deptId) {
-          setDeptId(payload.deptId);
-      }
+              atob(res.data.accessToken.split(".")[1])
+          );
+          setAuth(res.data.accessToken, res.data.route, res.data.user?.id, res.data.user?.fullName, payload.roles);
+          if (payload.deptId) {
+              setDeptId(payload.deptId);
+          }
           router.push(res.data.route ? '/' + res.data.route : '/dashboard');
         }
       } else {

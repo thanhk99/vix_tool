@@ -44,7 +44,14 @@ export default function CrelimitTab({partnerId}: CrelimitTabProps) {
         try {
             setLoading(true);
             const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/credit-limits`);
-            setCreditLimits(res.data.data || []);
+            const payload = res.data?.data || res.data;
+            if (payload && payload.content !== undefined) {
+                setCreditLimits(payload.content || []);
+            } else if (Array.isArray(payload)) {
+                setCreditLimits(payload);
+            } else {
+                setCreditLimits([]);
+            }
         } catch(err) {
             notifyError('Lỗi', 'Không thể tải danh sách hạn mức!');
         } finally {

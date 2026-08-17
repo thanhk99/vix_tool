@@ -5,6 +5,7 @@ import Modal from '@/components/shared/Modal/Modal';
 import Button from '@/components/shared/Button/Button';
 import styles from './AccessControlList.module.css';
 import { EmployeeListItemResponse } from '@/types/hr.types';
+import { permissionApi } from '@/lib/api/permission.api';
 
 interface PermissionFormData {
   [resource: string]: {
@@ -15,14 +16,13 @@ interface PermissionFormData {
 interface PermissionFormProps {
   isOpen: boolean;
   onClose: () => void;
-  departmentId?: string;
   employee: EmployeeListItemResponse
 }
 
 export default function PermissionForm({
   isOpen,
   onClose,
-  departmentId
+  employee
 }: PermissionFormProps) {
   const [formData, setFormData] = useState<PermissionFormData>({});
   const [loading, setLoading] = useState(false);
@@ -38,25 +38,26 @@ export default function PermissionForm({
     { key: 'EXPORT', label: 'Xuất khẩu' }
   ];
 
-  // Available resources
+  // Available resources and their allowed actions (sync with Backend ResourceCode)
   const resourceOptions = [
-    { key: 'CAPITAL_CONFIG', label: 'Danh mục và Cấu hình' },
-    { key: 'CAPITAL_PARTNER_LIMIT', label: 'QL Hạn mức tín dụng' },
-    { key: 'CAPITAL_CONTRACT', label: 'QL Khế ước Nhận Nợ' },
-    { key: 'CAPITAL_REPAYMENT', label: 'QL Sự kiện Trả Nợ' },
-    { key: 'CAPITAL_ASSET', label: 'QL Giao dịch tài sản' },
-    { key: 'CAPITAL_REPORT', label: 'Export Excel' },
-    { key: 'CAPITAL_BATCH', label: 'Import Excel' },
-    { key: 'MANAGE_ROLE_GROUP', label: 'QL Nhóm Vai Trò' },
-    { key: 'AUDIT_LOG', label: 'Lịch sử thay đổi' }
+    { key: 'CAPITAL_CONFIG', label: 'Danh mục và Cấu hình', allowedActions: ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'APPROVE'] },
+    { key: 'CAPITAL_PARTNER', label: 'Quản lý đối tác', allowedActions: ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'APPROVE'] },
+    { key: 'CAPITAL_LIMIT', label: 'QL Hạn mức tín dụng', allowedActions: ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'APPROVE'] },
+    { key: 'CAPITAL_CONTRACT', label: 'QL Khế ước Nhận Nợ', allowedActions: ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'APPROVE'] },
+    { key: 'CAPITAL_REPAYMENT', label: 'QL Sự kiện Trả Nợ', allowedActions: ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'APPROVE'] },
+    { key: 'CAPITAL_ASSET', label: 'QL Giao dịch tài sản', allowedActions: ['VIEW', 'CREATE', 'UPDATE', 'DELETE', 'APPROVE'] },
+    { key: 'CAPITAL_REPORT', label: 'Export Excel', allowedActions: ['VIEW', 'EXPORT'] },
+    { key: 'CAPITAL_BATCH', label: 'Import Excel', allowedActions: ['VIEW'] },
+    { key: 'MANAGE_ROLE_GROUP', label: 'QL Nhóm Vai Trò', allowedActions: ['VIEW', 'CREATE', 'UPDATE', 'DELETE'] },
+    { key: 'AUDIT_LOG', label: 'Lịch sử thay đổi', allowedActions: ['VIEW', 'EXPORT'] }
   ];
 
   // Load existing permissions when modal opens
   useEffect(() => {
-    if (isOpen && departmentId) {
+    if (isOpen) {
       loadPermissions();
     }
-  }, [isOpen, departmentId]);
+  }, [isOpen]);
 
   const loadPermissions = async () => {
     try {
@@ -64,15 +65,13 @@ export default function PermissionForm({
       setError(null);
 
       // Fetch current permissions for this resource and department
-      const response = await fetch(
-        `http://localhost:8888/v1/permissions/departments/${departmentId}/screens`
-      );
+      const res = await permissionApi.getUserPermissions(employee.id);
 
-      if (!response.ok) {
+      if (!res.success) {
         throw new Error('Failed to load permissions');
       }
 
-      const data = await response.json();
+      const data = res.data;
 
       // Initialize form with current permissions
       const initialData: PermissionFormData = {};
@@ -144,8 +143,6 @@ export default function PermissionForm({
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!departmentId) return;
-
     try {
       setLoading(true);
 
@@ -155,29 +152,20 @@ export default function PermissionForm({
       for (const resourceKey in formData) {
         const actions = actionOptions
           .filter(action => formData[resourceKey][action.key])
-          .map(action => action.key);
+          .map(action => action.key as any); // Cast or just as any
 
         if (actions.length > 0) {
           permissionsToSave.push({
-            resource: resourceKey,
-            actions
+            resource: resourceKey as any,
+            actions: actions
           });
         }
       }
 
       // Send to API endpoint
-      const response = await fetch(
-        `http://localhost:8888/v1/permissions/departments/${departmentId}/screens`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(permissionsToSave)
-        }
-      );
+      const res = await permissionApi.saveUserPermissions(employee.id, permissionsToSave);
 
-      if (!response.ok) {
+      if (!res.success) {
         throw new Error('Failed to save permissions');
       }
 
@@ -245,19 +233,24 @@ export default function PermissionForm({
               {actionOptions.map(action => (
                 <tr key={action.key}>
                   <td className={styles.actionCell}>{action.label}</td>
-                  {resourceOptions.map(res => (
-                    <td key={`${res.key}-${action.key}`} className={styles.cell}>
-                      <label className={styles.checkboxLabelMatrix}>
-                        <input
-                          type="checkbox"
-                          checked={!!formData[res.key]?.[action.key]}
-                          onChange={() => handleCellChange(res.key, action.key)}
-                          className={styles.checkboxMatrix}
-                        />
-                        &nbsp;
-                      </label>
-                    </td>
-                  ))}
+                  {resourceOptions.map(res => {
+                    const isAllowed = res.allowedActions.includes(action.key);
+                    return (
+                      <td key={`${res.key}-${action.key}`} className={styles.cell}>
+                        {isAllowed && (
+                          <label className={styles.checkboxLabelMatrix}>
+                            <input
+                              type="checkbox"
+                              checked={!!formData[res.key]?.[action.key]}
+                              onChange={() => handleCellChange(res.key, action.key)}
+                              className={styles.checkboxMatrix}
+                            />
+                            &nbsp;
+                          </label>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>

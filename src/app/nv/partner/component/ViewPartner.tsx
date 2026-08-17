@@ -3,12 +3,20 @@
 
 import { useState } from "react";
 import styles from "./ViewPartner.module.css";
-import { UsersRound } from "lucide-react";
+import { UsersRound, Printer } from "lucide-react";
 import { PartnersItem } from "@/types/funding.types";
 import SignatureTab from "./SignatureTab";
 import CustommerTypeTab from "./CustommerTypeTab";
 import AuthorizationTab from "./AuthorizationTab";
 import Button from "@/components/shared/Button/Button";
+
+const STATUS_MAP: Record<string, string> = {
+  ACTIVE: 'Đã duyệt',
+  APPROVED: 'Đã duyệt',
+  PENDING: 'Chờ duyệt',
+  PENDING_APPROVAL: 'Chờ duyệt',
+  INACTIVE: 'Ngừng hoạt động'
+};
 
 interface ViewPartnerProps {
   partner: PartnersItem | null;
@@ -123,7 +131,7 @@ export default function ViewPartner({
           <div className={styles.label}>Trạng thái</div>
           <div className={styles.value}>
             <span className={`${styles.status} ${getStatusClass(partner.status)}`}>
-              {partner.status || "-"}
+              {partner.status ? (STATUS_MAP[partner.status] || partner.status) : "-"}
             </span>
           </div>
         </div>
@@ -159,8 +167,11 @@ export default function ViewPartner({
       </div>
 
       {/* Footer */}
-      <div className={styles.footer}>
-        <Button variant="outline" onClick={onClose} className={styles.backBtn}>
+      <div className={styles.footer} style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+        <Button variant="outline" onClick={() => window.print()}>
+          <Printer size={16} style={{ marginRight: 4 }} /> In HĐ
+        </Button>
+        <Button variant="primary" onClick={onClose} className={styles.backBtn}>
           Đóng
         </Button>
       </div>

@@ -76,19 +76,21 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
     professionalInvestor: false,
     professionalStartDate: '',
     professionalEndDate: '',
+    note: '',
   });
 
   const fetchCusType = async () => {
     try {
       setLoading(true);
       const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}`);
-      const data = res.data.data;
+      const data = res.data?.data || res.data || {};
       setFormData({
         cusType: data.cusType || '',
         businessType: data.businessType || '',
         professionalInvestor: data.professionalInvestor || false,
         professionalStartDate: data.professionalStartDate || '',
         professionalEndDate: data.professionalEndDate || '',
+        note: data.note || '',
       });
     } catch (err: any) {
       notifyError('Lỗi', err.response?.data?.message || 'Không thể tải thông tin!');
@@ -159,12 +161,13 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
     try {
       setSaving(true);
 
-      await apiClient.put(`/v1/capital-source/partners/${partnerId}`, {
+      await apiClient.patch(`/v1/capital-source/partners/${partnerId}/customer-type`, {
         cusType: formData.cusType,
         businessType: formData.businessType,
         professionalInvestor: formData.professionalInvestor,
         professionalStartDate: formData.professionalInvestor ? formData.professionalStartDate : null,
         professionalEndDate: formData.professionalInvestor ? formData.professionalEndDate : null,
+        note: formData.note,
       });
 
       notifySuccess('Thành công', 'Đã cập nhật thông tin loại hình khách hàng');
@@ -287,6 +290,19 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
               handleChange('businessType', value)
             }
             placeholder="-- Chọn --"
+            fullWidth
+          />
+        </div>
+
+        {/* Ghi chú */}
+        <div className={styles.formGroup} style={{ gridColumn: 'span 2' }}>
+          <label className={styles.label}>Ghi chú</label>
+          <Input
+            type="text"
+            className={styles.input}
+            value={formData.note}
+            disabled={!isEditing || saving}
+            onChange={(e) => handleChange('note', e.target.value)}
             fullWidth
           />
         </div>

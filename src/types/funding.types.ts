@@ -25,6 +25,8 @@ export interface PartnersItem {
   createdBy: string;                   // Người tạo
   updatedBy: string;                   // Người cập nhật gần nhất
   lastUpdated: string;                 // Thời gian cập nhật gần nhất
+  approvedBy?: string;                 // Người duyệt
+  approvedAt?: string;                 // Thời gian duyệt
 }
 
 export interface CreatePartnerRequest {

@@ -7,12 +7,13 @@ import Table, { TableColumn } from '@/components/shared/Table/Table';
 import Input from '@/components/shared/Input/Input';
 import { CreatePartnerRequest, PartnersItem } from '@/types/funding.types';
 import apiClient from '@/lib/api/client';
-import { ChevronLeft, ChevronRight, Pen, Trash2, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pen, Trash2, X, MoreVertical, CheckCircle, Plus, RefreshCw, FileSpreadsheet, Eye } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNotification } from '@/hooks/useNotification';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/shared/Modal/Modal';
 import ViewPartner from './ViewPartner';
+import PartnerFormModal from './PartnerFormModal';
 
 export default function PartnerList() {
   const [partners, setPartners] = useState<PartnersItem[]>([]);
@@ -20,52 +21,17 @@ export default function PartnerList() {
   const { notifyError, notifySuccess, notifyWarning, notifyInfo } = useNotification();
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [searchKeyword, setSearchKeyword] = useState('');
-  const filteredPartners = useMemo(() => {
-    const keyword = searchKeyword.toLowerCase().trim();
-    if (!keyword) return partners;
-    
-    return partners.filter(item =>
-      item.cusId?.toLowerCase().includes(keyword) ||
-      item.cusName?.toLowerCase().includes(keyword) ||
-      item.branchCusId?.toLowerCase().includes(keyword) ||
-      item.idCode?.toLowerCase().includes(keyword) ||
-      item.email?.toLowerCase().includes(keyword)
-    );
-  }, [partners, searchKeyword]);
+  const [totalItems, setTotalItems] = useState(0);
 
-  // Du lieu cho them moi doi tac
-  const [formData, setFormData] = useState<CreatePartnerRequest>({
-    cusId: "",
-    branchCusId: "",
-    cusName: "",
-    shortName: "",
-    address: "",
-    idCode: "",
-    fistIssueDate: "",
-    lastIssueDate: "",
-    issueBy: "",
-    changeCount: 0,
-    opLiscenseNo: "",
-    opIssueDate: "",
-    mobile: "",
-    email: "",
-    website: "",
-    cusType: "",
-    businessType: "",
-    professionalInvestor: false,
-    professionalStartDate: "",
-    professionalEndDate: "",
-    status: "ACTIVE",
-  });
+  const [editPartnerId, setEditPartnerId] = useState<string | null>(null);
   const userId = useAuthStore((state) => state.userId);
 
-  // Tinh toan cho phan trang
-  const totalItems = filteredPartners.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  // Tinh toan cho phan trang (Server-side)
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
-  const currentData = filteredPartners.slice(startIndex, startIndex + pageSize);
+  const currentData = partners;
   // Router 
   const router = useRouter();
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -80,11 +46,31 @@ export default function PartnerList() {
     setViewingPartner(null);
   };
   
+  // Action menu state
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
+
+  // Handle outside click
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenActionMenuId(null);
+    };
+    if (openActionMenuId) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [openActionMenuId]);
+
   // Click row
   const [selectedPartner, setSelectedPartner] = useState<PartnersItem | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  
   // Click vao dong
   const handleRowClick = (record: PartnersItem) => {
+    // Nếu bấm vào row thì ẩn menu
+    setOpenActionMenuId(null);
     if(selectedPartner?.id === record.id) {
       setSelectedRowId(null);
       setSelectedPartner(null);
@@ -103,9 +89,30 @@ export default function PartnerList() {
   const fetchPartners = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get("/v1/capital-source/partners");
-      const data = Array.isArray(res) ? res : (res?.data || []);
+      // Giả định backend dùng page (0-indexed) hoặc page (1-indexed)
+      // Hiện tại gửi page=currentPage - 1 cho chuẩn Spring Boot mặc định
+      const keywordQuery = searchKeyword ? `&keyword=${encodeURIComponent(searchKeyword)}` : '';
+      const res = await apiClient.get(`/v1/capital-source/partners?page=${currentPage - 1}&size=${pageSize}${keywordQuery}`);
+      
+      let data = [];
+      let total = 0;
+      
+      if (res?.content) {
+         data = res.content;
+         total = res.totalElements || 0;
+      } else if (res?.data?.content) {
+         data = res.data.content;
+         total = res.data.totalElements || 0;
+      } else if (res?.data?.data) {
+         data = res.data.data;
+         total = res.data.total || res.data.totalElements || 0;
+      } else {
+         data = Array.isArray(res) ? res : (res?.data || []);
+         total = Array.isArray(data) ? data.length : 0;
+      }
+      
       setPartners(Array.isArray(data) ? data : []);
+      setTotalItems(total);
     } catch (error) {
       notifyError('Lỗi', 'Không tải được dữ liệu!');
     } finally {
@@ -114,13 +121,26 @@ export default function PartnerList() {
   };
 
   useEffect(() => {
-    fetchPartners();
-  }, []);
+    const delayDebounceFn = setTimeout(() => {
+      fetchPartners();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [currentPage, pageSize, searchKeyword]);
 
   // Reset về trang 1 khi search thay đổi
   useEffect(() => {
     setCurrentPage(1);
   }, [searchKeyword]);
+
+  // Cập nhật lại thông tin chi tiết nếu dữ liệu trong bảng thay đổi (VD: sau khi duyệt)
+  useEffect(() => {
+    if (selectedPartner) {
+      const updated = partners.find(p => p.id === selectedPartner.id);
+      if (updated) {
+        setSelectedPartner(updated);
+      }
+    }
+  }, [partners, selectedPartner?.id]);
 
   // Xu ly tim kiem
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,100 +151,207 @@ export default function PartnerList() {
     setSearchKeyword('');
   };
 
+  const STATUS_MAP: Record<string, string> = {
+    ACTIVE: 'Đã duyệt',
+    APPROVED: 'Đã duyệt',
+    PENDING: 'Chờ duyệt',
+    PENDING_APPROVAL: 'Chờ duyệt',
+    INACTIVE: 'Ngừng hoạt động'
+  };
+
   // getStatusClass 
-  const STATUS_CLASS = {
+  const STATUS_CLASS: Record<string, string> = {
     ACTIVE: styles.active,
+    APPROVED: styles.active,
     PENDING: styles.pending,
+    PENDING_APPROVAL: styles.pending,
     INACTIVE: styles.inactive,
   };
 
   const getStatusClass = (status: string) => STATUS_CLASS[status as keyof typeof STATUS_CLASS] ?? "";
 
-  // Định nghĩa các cột cho table
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa?")) return;
+    try {
+      setLoading(true);
+      await apiClient.delete(`/v1/capital-source/partners/${id}`);
+      notifySuccess("Thành công", "Đã xóa đối tác");
+      fetchPartners();
+    } catch (e) {
+      notifyError("Lỗi", "Không thể xóa đối tác");
+    } finally {
+      setLoading(false);
+      setOpenActionMenuId(null);
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      setLoading(true);
+      // Giả định API approve. Nếu API khác, hãy điều chỉnh
+      await apiClient.put(`/v1/capital-source/partners/${id}/approve`, {});
+      notifySuccess("Thành công", "Đã phê duyệt đối tác");
+      fetchPartners();
+    } catch (e) {
+      notifyError("Lỗi", "Không thể phê duyệt đối tác");
+    } finally {
+      setLoading(false);
+      setOpenActionMenuId(null);
+    }
+  };
+
   const columns: TableColumn<PartnersItem>[] = [
     {
       key: "stt",
       title: "STT",
-      width:40,
+      width: 40,
       render: (_, __, index) => startIndex + index + 1,
     },
     {
       key: "cusId",
       title: "Mã KH",
-      width:100
+      width: 80
     },
     {
       key: "branchCusId",
-      title: "Mã đơn vị GD",
-      width:120
+      title: "Đơn vị GD",
+      width: 90
     },
     {
       key: "cusName",
       title: "Tên KH",
-      width:300
+      width: 250
     },
     {
       key: "idCode",
-      title: "Số ĐKKD/CCCD",
-      width:120
-
+      title: "ĐKKD/CCCD",
+      width: 100
     },
     {
       key: "fistIssueDate",
-      title: "Ngày cấp lần đầu",
-      width:120
+      title: "Cấp lần đầu",
+      width: 100
     },
     {
       key: "lastIssueDate",
-      title: "Ngày cấp cuối",
-      width:120
+      title: "Cấp cuối",
+      width: 100
     },
     {
       key: "issueBy",
       title: "Nơi cấp",
-      width:100
+      width: 100
     },
     {
       key: "opLiscenseNo",
-      title: "GP hoạt động",
-      width: 100
-
+      title: "GP HĐ",
+      width: 90
     },
     {
       key: "opIssueDate",
-      title: "Ngày cấp",
-      width:120
+      title: "Ngày cấp GP",
+      width: 100
     },
     {
       key: "status",
       title: "Trạng thái",
-      render: (value) => (
-        <span className={`${styles.status} ${getStatusClass(value as string) ?? ""}`}>
-          {value as string}
-        </span>
-      ),
-      width:100
+      render: (value) => {
+        const statusVal = value as string;
+        const displayStatus = STATUS_MAP[statusVal] || statusVal;
+        return (
+          <span className={`${styles.status} ${getStatusClass(statusVal) ?? ""}`}>
+            {displayStatus}
+          </span>
+        );
+      },
+      width: 90
     },
     {
       key: "lastUpdated",
-      title: "Ngày chỉnh sửa",
-      width: 120
+      title: "Ngày sửa",
+      width: 90
     },
     {
       key: "updatedBy",
-      title: "User thực hiện",
-      width:120
+      title: "Người sửa",
+      width: 90
     },
     {
       key: "actions",
       title: "Thao tác",
-      width: 50,
+      width: 60,
       render: (_, record) => (
         <div className={styles.actionButtons}>
-          {/* <Button variant="outline" size="sm" onClick={() => router.push(`/nv/partner/edit/${record.id}`)} >Sửa</Button>
-          <Button variant="danger" size="sm" style={{ marginLeft: 3 }}>Xóa</Button> */}
-          <Pen size={18} className={styles.pen} onClick={() => router.push(`/nv/partner/edit/${record.id}`)}/>
-          <Trash2 size={18} className={styles.delete}/>
+          <button 
+            className={styles.moreBtn}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (openActionMenuId === record.id) {
+                setOpenActionMenuId(null);
+                setMenuPosition(null);
+              } else {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setOpenActionMenuId(record.id);
+                setMenuPosition({
+                  top: rect.bottom,
+                  right: window.innerWidth - rect.right,
+                });
+              }
+            }}
+          >
+            <MoreVertical size={16} />
+          </button>
+          
+          {openActionMenuId === record.id && menuPosition && (() => {
+            const statusVal = String(record.status || '').trim().toUpperCase();
+            const isPending = ['PENDING', 'PENDING_APPROVAL', 'CHỜ DUYỆT', 'CHO_DUYET', 'WAIT_APPROVE', 'WAITING'].includes(statusVal);
+            const isActive = ['ACTIVE', 'ĐÃ DUYỆT', 'DA_DUYET', 'APPROVED'].includes(statusVal);
+
+            return (
+              <div 
+                className={styles.dropdownMenu}
+                style={{
+                  position: 'fixed',
+                  top: menuPosition.top + 'px',
+                  right: menuPosition.right + 'px',
+                  zIndex: 9999
+                }}
+              >
+                <button onClick={(e) => {
+                  e.stopPropagation();
+                  setEditPartnerId(record.id);
+                  setIsOpenModal(true);
+                  setOpenActionMenuId(null);
+                }}>
+                  <Pen size={14} /> Sửa
+                </button>
+                
+                <button 
+                  disabled={!isPending}
+                  className={!isPending ? styles.disabledBtn : ''}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isPending) return;
+                    handleApprove(record.id);
+                  }}
+                >
+                  <CheckCircle size={14} /> Phê duyệt
+                </button>
+
+                <button 
+                  disabled={!isActive}
+                  className={!isActive ? styles.disabledBtn : styles.dangerBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isActive) return;
+                    handleDelete(record.id);
+                  }}
+                >
+                  <Trash2 size={14} /> Xóa
+                </button>
+              </div>
+            );
+          })()}
         </div>
       ),
     },
@@ -244,26 +371,51 @@ export default function PartnerList() {
   };
 
 
-  // POST
-  const handleCreatePartner = async () => {
-    try {
-      setLoading(true);
-      const payload = {
-        id: crypto.randomUUID(),
-        ...formData,
-        createdBy: userId,
-        updatedBy: userId,
-        lastUpdated: new Date().toISOString().split("T")[0],
-      };
-      await apiClient.post("/v1/capital-source/partners", payload);
-      fetchPartners();
-    } catch (error){
-      notifyError('Lỗi', 'Không tải được dữ liệu');
-      notifyError("Lỗi", "Có lỗi xảy ra!");
-    } finally {
-      setLoading(false);
+  // POST is now handled in PartnerFormModal
+  const handleOpenCreateModal = () => {
+    setEditPartnerId(null);
+    setIsOpenModal(true);
+  };
+
+  const handleExportExcel = () => {
+    if (!currentData || currentData.length === 0) {
+      notifyWarning('Cảnh báo', 'Không có dữ liệu để xuất Excel!');
+      return;
     }
-  }
+    
+    const headers = ["Mã đối tác", "Tên đối tác", "Tên viết tắt", "Địa chỉ", "Mã số thuế / CMND", "Loại khách hàng", "Trạng thái"];
+    const rows = currentData.map(p => [
+      p.cusId || '',
+      p.cusName || '',
+      p.shortName || '',
+      p.address || '',
+      p.idCode || '',
+      p.cusType || '',
+      STATUS_MAP[p.status as keyof typeof STATUS_MAP] || p.status || ''
+    ]);
+
+    const csvContent = "\uFEFF" + [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Danh_sach_doi_tac_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    notifySuccess('Thành công', 'Đã xuất file Excel!');
+  };
+
+  const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPageSize(Number(e.target.value));
+    setCurrentPage(1);
+  };
 
   return (
     <div className={styles.container}>
@@ -287,23 +439,35 @@ export default function PartnerList() {
           </div>
 
           <Button variant="primary" onClick={fetchPartners}>
+            <RefreshCw size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
             Làm mới
           </Button>
-          <Button variant='primary' onClick={() => setIsOpenModal(true)}>
+          <Button variant='primary' onClick={handleOpenCreateModal}>
+            <Plus size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
             Thêm mới
+          </Button>
+          <Button variant='primary' onClick={handleExportExcel}>
+            <FileSpreadsheet size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+            Xuất Excel
           </Button>
 
           <Button variant='primary' disabled={!selectedPartner}
           onClick={() => {
             if(!selectedPartner) return;
             handleViewPartner(selectedPartner);
-          }}>Xem</Button>
+          }}>
+            <Eye size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+            Xem
+          </Button>
 
           <Button variant='primary' disabled={!selectedPartner}
             onClick={() => {
               if(!selectedPartner) return;
             }}
-          >Xóa</Button>
+          >
+            <Trash2 size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+            Xóa
+          </Button>
         </div>
       </div>
       
@@ -322,308 +486,23 @@ export default function PartnerList() {
       
       {/*Modal */}
       {isOpenModal && (
-          <Modal
+          <PartnerFormModal
               isOpen={isOpenModal}
               onClose={() => setIsOpenModal(false)}
-              title="Thêm mới đối tác"
-              size="lg"
-              footer={
-                  <>
-                      <Button
-                          variant="outline"
-                          onClick={() => setIsOpenModal(false)}
-                      >
-                          Hủy
-                      </Button>
-
-                      <Button
-                          variant="primary"
-                          onClick={handleCreatePartner}
-                      >
-                          Lưu
-                      </Button>
-                  </>
-              }
-          >
-              <div className={styles.formGrid}>
-
-                  {/* Mã KH */}
-                  <Input
-                      label="Mã KH"
-                      value={formData.cusId}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              cusId: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Mã đơn vị GD */}
-                  <Input
-                      label="Mã đơn vị GD"
-                      value={formData.branchCusId}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              branchCusId: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Tên KH */}
-                  <Input
-                      label="Tên KH"
-                      value={formData.cusName}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              cusName: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Tên viết tắt */}
-                  <Input
-                      label="Tên viết tắt"
-                      value={formData.shortName}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              shortName: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Địa chỉ */}
-                  <Input
-                      label="Địa chỉ"
-                      value={formData.address}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              address: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Số ĐKKD/CCCD */}
-                  <Input
-                      label="Số ĐKKD/CCCD"
-                      value={formData.idCode}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              idCode: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Ngày cấp lần đầu */}
-                  <Input
-                      label="Ngày cấp lần đầu"
-                      type="date"
-                      value={formData.fistIssueDate}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              fistIssueDate: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Ngày cấp cuối */}
-                  <Input
-                      label="Ngày cấp cuối"
-                      type="date"
-                      value={formData.lastIssueDate}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              lastIssueDate: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Nơi cấp */}
-                  <Input
-                      label="Nơi cấp"
-                      value={formData.issueBy}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              issueBy: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Số lần thay đổi */}
-                  <Input
-                      label="Số lần thay đổi"
-                      type="number"
-                      value={formData.changeCount}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              changeCount: Number(e.target.value),
-                          })
-                      }
-                  />
-
-                  {/* Giấy phép hoạt động */}
-                  <Input
-                      label="Giấy phép hoạt động"
-                      value={formData.opLiscenseNo}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              opLiscenseNo: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Ngày cấp giấy phép */}
-                  <Input
-                      label="Ngày cấp giấy phép"
-                      type="date"
-                      value={formData.opIssueDate}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              opIssueDate: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Số điện thoại */}
-                  <Input
-                      label="Số điện thoại"
-                      value={formData.mobile}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              mobile: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Email */}
-                  <Input
-                      label="Email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              email: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Website */}
-                  <Input
-                      label="Website"
-                      value={formData.website}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              website: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Loại khách hàng */}
-                  <Input
-                      label="Loại khách hàng"
-                      value={formData.cusType}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              cusType: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Loại hình kinh doanh */}
-                  <Input
-                      label="Loại hình kinh doanh"
-                      value={formData.businessType}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              businessType: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Nhà đầu tư chuyên nghiệp */}
-                  <div className={styles.checkboxField}>
-                      <label>
-                          <input
-                              type="checkbox"
-                              checked={formData.professionalInvestor}
-                              onChange={(e) =>
-                                  setFormData({
-                                      ...formData,
-                                      professionalInvestor:
-                                          e.target.checked,
-                                  })
-                              }
-                          />
-
-                          <span>
-                              Nhà đầu tư chuyên nghiệp
-                          </span>
-                      </label>
-                  </div>
-
-                  {/* Ngày bắt đầu NĐT chuyên nghiệp */}
-                  <Input
-                      label="Ngày bắt đầu NĐT chuyên nghiệp"
-                      type="date"
-                      value={formData.professionalStartDate}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              professionalStartDate: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Ngày kết thúc NĐT chuyên nghiệp */}
-                  <Input
-                      label="Ngày kết thúc NĐT chuyên nghiệp"
-                      type="date"
-                      value={formData.professionalEndDate}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              professionalEndDate: e.target.value,
-                          })
-                      }
-                  />
-
-                  {/* Trạng thái */}
-                  <Input
-                      label="Trạng thái"
-                      value={formData.status}
-                      onChange={(e) =>
-                          setFormData({
-                              ...formData,
-                              status: e.target.value,
-                          })
-                      }
-                  />
-
-              </div>
-          </Modal>
+              partnerId={editPartnerId}
+              onSuccess={fetchPartners}
+          />
       )}
 
       {isViewModalOpen && viewingPartner && (
         <Modal
           isOpen={isViewModalOpen}
           onClose={handleCloseViewModal}
-          title=""
+          title={
+            <>
+              <Eye size={22} color="var(--primary)" /> Chi tiết đối tác
+            </>
+          }
           size="xl"
         >
           <ViewPartner
@@ -638,9 +517,18 @@ export default function PartnerList() {
       {/* PHÂN TRANG */}
       {totalItems > 0 && (
         <div className={styles.pagination}>
-          <div className={styles.pageInfo}>
-            Hiển thị {startIndex + 1} - {Math.min(startIndex + pageSize, totalItems)} của {totalItems} bản ghi
-            {searchKeyword && ` (kết quả tìm kiếm)`}
+          <div className={styles.pageInfo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>Hiển thị {startIndex + 1} - {Math.min(startIndex + pageSize, totalItems)} của {totalItems} bản ghi {searchKeyword && `(kết quả tìm kiếm)`}</span>
+            <select 
+              value={pageSize} 
+              onChange={handlePageSizeChange}
+              style={{ padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', outline: 'none', cursor: 'pointer' }}
+            >
+              <option value={10}>10 / trang</option>
+              <option value={20}>20 / trang</option>
+              <option value={50}>50 / trang</option>
+              <option value={100}>100 / trang</option>
+            </select>
           </div>
           <div className={styles.pageControls}>
             <button
@@ -677,10 +565,9 @@ export default function PartnerList() {
           {/* CỘT TRÁI - Thông tin đối tác */}
           <div className={styles.detailColumn}>
             <div className={styles.detailHeader}>
-              <h3>THÔNG TIN ĐỐI TÁC</h3>
+              <h3>THÔNG TIN CHI TIẾT ĐỐI TÁC</h3>
               <button
                 type="button"
-                // onClick={() => {setSelectedPartner(null), handleCloseDetail}}
                 onClick={handleCloseDetail}
                 className={styles.closeDetail}
               >
@@ -689,112 +576,29 @@ export default function PartnerList() {
             </div>
 
             <div className={styles.detailGrid3Col}>
-              <div className={styles.detailItem}>
-                <span>Mã KH</span>
-                <strong>{selectedPartner.cusId || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Mã đơn vị GD</span>
-                <strong>{selectedPartner.branchCusId || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Tên KH</span>
-                <strong>{selectedPartner.cusName || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Tên viết tắt</span>
-                <strong>{selectedPartner.shortName || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Số ĐKKD/CCCD</span>
-                <strong>{selectedPartner.idCode || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Địa chỉ</span>
-                <strong>{selectedPartner.address || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Ngày cấp lần đầu</span>
-                <strong>{selectedPartner.fistIssueDate || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Ngày cấp cuối</span>
-                <strong>{selectedPartner.lastIssueDate || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Nơi cấp</span>
-                <strong>{selectedPartner.issueBy || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Giấy phép hoạt động</span>
-                <strong>{selectedPartner.opLiscenseNo || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Ngày cấp giấy phép</span>
-                <strong>{selectedPartner.opIssueDate || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Số điện thoại</span>
-                <strong>{selectedPartner.mobile || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Email</span>
-                <strong>{selectedPartner.email || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Website</span>
-                <strong>{selectedPartner.website || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Loại khách hàng</span>
-                <strong>{selectedPartner.cusType || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Loại hình kinh doanh</span>
-                <strong>{selectedPartner.businessType || "-"}</strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Nhà đầu tư chuyên nghiệp</span>
-                <strong>
-                  {selectedPartner.professionalInvestor ? "Có" : "Không"}
-                </strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Ngày bắt đầu NĐT chuyên nghiệp</span>
-                <strong>
-                  {selectedPartner.professionalStartDate || "-"}
-                </strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Ngày kết thúc NĐT chuyên nghiệp</span>
-                <strong>
-                  {selectedPartner.professionalEndDate || "-"}
-                </strong>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span>Trạng thái</span>
-                <strong className={`${styles.statusText} ${getStatusClass(selectedPartner.status)}`}>
-                  {selectedPartner.status || "-"}
-                </strong>
+              <Input label="Mã KH" value={selectedPartner.cusId || ""} readOnly />
+              <Input label="Mã đơn vị GD" value={selectedPartner.branchCusId || ""} readOnly />
+              <Input label="Tên KH" value={selectedPartner.cusName || ""} readOnly />
+              <Input label="Số ĐKKD/CCCD" value={selectedPartner.idCode || ""} readOnly />
+              <Input label="Ngày cấp lần đầu" value={selectedPartner.fistIssueDate || ""} readOnly />
+              <Input label="Ngày cấp cuối" value={selectedPartner.lastIssueDate || ""} readOnly />
+              <Input label="Nơi cấp" value={selectedPartner.issueBy || ""} readOnly />
+              <Input label="Giấy phép hoạt động" value={selectedPartner.opLiscenseNo || ""} readOnly />
+              <Input label="Ngày cấp giấy phép" value={selectedPartner.opIssueDate || ""} readOnly />
+              <Input label="Điện thoại" value={selectedPartner.mobile || ""} readOnly />
+              <Input label="Email" value={selectedPartner.email || ""} readOnly />
+              <Input label="Website" value={selectedPartner.website || ""} readOnly />
+              <Input label="Phân loại KH" value={selectedPartner.cusType || ""} readOnly />
+              <Input label="Loại hình kinh doanh" value={selectedPartner.businessType || ""} readOnly />
+              <Input label="NĐT chuyên nghiệp" value={selectedPartner.professionalInvestor ? "Có" : "Không"} readOnly />
+              <Input label="Ngày bắt đầu NĐT CN" value={selectedPartner.professionalStartDate || ""} readOnly />
+              <Input label="Ngày kết thúc NĐT CN" value={selectedPartner.professionalEndDate || ""} readOnly />
+              
+              <div className={styles.formGroupReadOnly}>
+                 <label>Trạng thái</label>
+                 <div className={`${styles.statusText} ${getStatusClass(selectedPartner.status)}`}>
+                    {selectedPartner.status ? (STATUS_MAP[selectedPartner.status as keyof typeof STATUS_MAP] || selectedPartner.status) : "-"}
+                 </div>
               </div>
             </div>
           </div>
@@ -802,15 +606,17 @@ export default function PartnerList() {
           {/* CỘT PHẢI - Thông tin quản lý */}
           <div className={styles.detailColumn}>
             <div className={styles.detailSectionTitle}>
-              <h4>THÔNG TIN QUẢN LÝ</h4>
+              <h3 style={{fontSize:'var(--text-md)', margin:0, color:'var(--primary-color)'}}>THÔNG TIN QUẢN LÝ</h3>
             </div>
-            <div className={styles.detailItem}>
-              <span>Ngày chỉnh sửa</span>
-              <strong>{selectedPartner.lastUpdated || "-"}</strong>
-            </div>
-            <div className={styles.detailItem}>
-              <span>User thực hiện</span>
-              <strong>{selectedPartner.updatedBy || "-"}</strong>
+            <div className={styles.managementGrid}>
+               <Input label="User thực hiện" value={selectedPartner.updatedBy || ""} readOnly />
+               <Input label="Ngày chỉnh sửa" value={selectedPartner.lastUpdated || ""} readOnly />
+               <Input label="User duyệt" value={selectedPartner.approvedBy || "N/A"} readOnly />
+               <Input label="Thời gian duyệt" value={selectedPartner.approvedAt ? selectedPartner.approvedAt.substring(0, 19).replace('T', ' ') : "N/A"} readOnly />
+               <div className={styles.formGroupReadOnly}>
+                  <label>Ghi chú</label>
+                  <textarea readOnly value="Hồ sơ đã được duyệt." className={styles.readOnlyTextarea} />
+               </div>
             </div>
           </div>
         </div>

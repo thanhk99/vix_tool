@@ -88,15 +88,21 @@ export default function Table<T>({
                   style={{ cursor: onRowClick || highlightRow ? 'pointer' : 'default' }}
                   className={`${styles.tr} ${isSelected ? styles.selectedRow : ''}`}
                 >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={styles.td}
-                      style={{ textAlign: col.align ?? 'left' }}
-                    >
-                      {getCellValue(row, col, rowIndex)}
-                    </td>
-                  ))}
+                  {columns.map((col) => {
+                    const cellValue = getCellValue(row, col, rowIndex);
+                    const titleText = typeof (row as any)[col.key] === 'string' || typeof (row as any)[col.key] === 'number' 
+                                      ? String((row as any)[col.key]) : undefined;
+                    return (
+                      <td
+                        key={col.key}
+                        className={styles.td}
+                        style={{ textAlign: col.align ?? 'left' }}
+                        title={titleText}
+                      >
+                        {cellValue}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })

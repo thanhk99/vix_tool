@@ -43,21 +43,46 @@ const STATUS_OPTIONS: SelectOption[] = [
     },
 ];
 
-export default function SignatureTab() {
+import apiClient from "@/lib/api/client";
+import { useEffect } from "react";
+
+export default function SignatureTab({ partnerId }: { partnerId: string }) {
     const [signatures, setSignatures] = useState<SignatureFormData[]>([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(10);
+    const [totalItems, setTotalItems] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
     const [isCreating, setIsCreating] = useState(false);
     const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState<SignatureFormData>(INITIAL_FORM);
-     
-    const totalItems = signatures.length;
-    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    
     const startIndex = (currentPage - 1) * pageSize;
-    const currentData = signatures.slice(
-        startIndex,
-        startIndex + pageSize
-    );
+
+    const fetchSignatures = async () => {
+        try {
+            const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/signatures?page=${currentPage - 1}&size=${pageSize}`);
+            const payload = res.data?.data || res.data;
+            if (payload && payload.content !== undefined) {
+                setSignatures(payload.content || []);
+                setTotalItems(payload.totalElements || 0);
+                setTotalPages(payload.totalPages || 1);
+            } else if (Array.isArray(payload)) {
+                setSignatures(payload);
+                setTotalItems(payload.length);
+                setTotalPages(1);
+            } else {
+                setSignatures([]);
+            }
+        } catch (error: any) {
+            notifyError("Không thể tải danh sách chữ ký!");
+        }
+    };
+
+    useEffect(() => {
+        if (partnerId) {
+            fetchSignatures();
+        }
+    }, [partnerId, currentPage]);
 
     const {
         notifyError,
@@ -194,10 +219,7 @@ export default function SignatureTab() {
                     formData.status,
             };
 
-            setSignatures((prev) => [
-                ...prev,
-                newSignature,
-            ]);
+            await apiClient.post(`/v1/capital-source/partners/${partnerId}/signatures`, newSignature);
 
             notifySuccess(
                 "Thành công",
@@ -209,8 +231,8 @@ export default function SignatureTab() {
             });
 
             setIsCreating(false);
-
             setCurrentPage(1);
+            await fetchSignatures();
         } catch (error) {
             console.error(
                 "Create signature error:",
@@ -390,8 +412,8 @@ export default function SignatureTab() {
             <div className={styles.table}>
                 <Table
                     columns={columns}
-                    data={currentData}
-                    rowKey="fileName"
+                    data={signatures}
+                    rowKey="id"
                     emptyText="Không có dữ liệu chữ ký"
                 />
             </div>

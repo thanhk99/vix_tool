@@ -77,11 +77,8 @@
     top: 0;
     background: #f8fafc;
     z-index: 10;
-    white-space: normal;
-    word-break: break-word;
     line-height: 1.3;
     min-height: 40px;
-    max-width: 150px;
 }
 
 .tableContainer tbody tr {
@@ -107,16 +104,7 @@
     text-overflow: ellipsis;
 }
 
-/* Cho phép hover để xem full text */
-.tableContainer tbody td:hover {
-    overflow: visible;
-    white-space: normal;
-    word-break: break-word;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    position: relative;
-    z-index: 5;
-    cursor: pointer;
-}
+/* Removed cell expand on hover as per request */
 
 /* ============================================
    Cột STT
@@ -136,6 +124,7 @@
     padding: 4px 8px;
     text-align: center;
     width: 150px;
+    overflow: visible;
 }
 
 .tableContainer :global(td:last-child) {
@@ -213,25 +202,89 @@
   color: #166534;
 }
 
+.pending {
+  background-color: #ffedd5;
+  color: #c2410c;
+}
+
+.inactive {
+  background-color: #fecaca;
+  color: #dc2626;
+}
+
+/* Action Buttons (More Vertical Menu) */
 .actionButtons {
+  position: relative;
   display: flex;
-  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
 }
 
-.actionButtons .pen {
-  color: var(--warning);
-}
-
-.actionButtons .pen:hover {
+.moreBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
   cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.actionButtons .delete {
-  color: var(--danger);
+.moreBtn:hover {
+  background: var(--surface-variant);
+  color: var(--text-primary);
 }
 
-.actionButtons .pen:hover {
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  min-width: 140px;
+  padding: 4px;
+}
+
+.dropdownMenu button {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+}
+
+.dropdownMenu button:hover {
+  background: var(--surface-variant);
+}
+
+.dangerBtn {
+  color: var(--danger) !important;
+}
+
+.dangerBtn:hover {
+  background: #fecaca !important;
+}
+
+.disabledBtn {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+}
+
+.disabledBtn:hover {
+  background: none !important;
 }
 
 /* ===== SEARCH ===== */
@@ -540,12 +593,7 @@
   white-space: nowrap;
 }
 
-/* Khi nội dung dài */
-.detailItem strong:hover {
-  overflow: visible;
-  white-space: normal;
-  word-break: break-word;
-}
+/* Removed detailItem strong:hover as per request */
 
 /* =========================================
    STATUS
@@ -563,9 +611,9 @@
 }
 
 .statusText.pending {
-  color: var(--warning) !important;
-  background: var(--background) !important;
-  border-color: #fde68a !important;
+  color: #c2410c !important;
+  background: #ffedd5 !important;
+  border-color: #fdba74 !important;
 }
 
 .statusText.inactive {
@@ -595,6 +643,41 @@
   font-weight:var(--font-weight-bold);
 
   color: var(--primary);
+}
+
+.managementGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.formGroupReadOnly {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.formGroupReadOnly label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.readOnlyTextarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-variant);
+  color: var(--text-primary);
+  font-size: 14px;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.readOnlyTextarea:focus {
+  outline: none;
 }
 
 /* Thanh màu nhỏ */

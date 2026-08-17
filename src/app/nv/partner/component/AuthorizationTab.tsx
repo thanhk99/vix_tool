@@ -20,23 +20,29 @@ export default function AuthorizationTab({partnerId}: AuthorizationTabProps) {
     const [loading, setLoading] = useState(true);
     const { notifyError, notifySuccess, notifyInfo, notifyWarning } = useNotification();
     const [isOpenModal, setIsOpenModal] = useState(false);
-    // const params = useParams();
-    // const partnerId = params.id as string;
     
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
     const pageSize = 3;
-    const totalItems = author.length;
-    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const startIndex = (currentPage - 1) * pageSize;
-    const currentData = author.slice(
-        startIndex,
-        startIndex + pageSize
-    );
 
     const fetchAuthor = async() => {
         try {
-            const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/authorizations`);
-            setAuthor(res.data.data || []);
+            setLoading(true);
+            const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/authorizations?page=${currentPage - 1}&size=${pageSize}`);
+            const payload = res.data?.data || res.data;
+            if (payload && payload.content !== undefined) {
+                setAuthor(payload.content || []);
+                setTotalItems(payload.totalElements || 0);
+                setTotalPages(payload.totalPages || 1);
+            } else if (Array.isArray(payload)) {
+                setAuthor(payload);
+                setTotalItems(payload.length);
+                setTotalPages(1);
+            } else {
+                setAuthor([]);
+            }
         } catch(error:any) {
             notifyError("Không thể tải danh sách ủy quyền!");
         } finally {
@@ -48,7 +54,7 @@ export default function AuthorizationTab({partnerId}: AuthorizationTabProps) {
         if(partnerId) {
             fetchAuthor();
         }
-    }, [partnerId]);
+    }, [partnerId, currentPage]);
 
     const handlePrevPage = () => {
         if (currentPage > 1) {
@@ -217,7 +223,7 @@ export default function AuthorizationTab({partnerId}: AuthorizationTabProps) {
                 <Table 
                     columns={columns}
                     rowKey="id" 
-                    data={currentData}  
+                    data={author}  
                     isLoading={loading}  
                     emptyText="Không có dữ liệu ủy quyền"            
                 />

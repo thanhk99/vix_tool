@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import styles from "./page.module.css";
-import { UsersRound, X } from "lucide-react";
+import { UsersRound, X, Printer } from "lucide-react";
 import { PartnersItem } from "@/types/funding.types";
 // import SignatureTab from "@/app/nv/partner/component/partners/SignatureTab";
 // import AuthorizationTab from "@/app/nv/partner/component/partners/AuthorizationTab";
@@ -16,6 +16,14 @@ import CrelimitTab from "../../component/CrelimitTab";
 import CustommerTypeTab from "../../component/CustommerTypeTab";
 import AuthorizationTab from "../../component/AuthorizationTab";
 import Button from "@/components/shared/Button/Button";
+
+const STATUS_MAP: Record<string, string> = {
+    ACTIVE: 'Đã duyệt',
+    APPROVED: 'Đã duyệt',
+    PENDING: 'Chờ duyệt',
+    PENDING_APPROVAL: 'Chờ duyệt',
+    INACTIVE: 'Ngừng hoạt động'
+};
 
 export default function PartnerView() {
     const params = useParams();
@@ -154,7 +162,7 @@ export default function PartnerView() {
                     <div className={styles.label}>Trạng thái</div>
                     <div className={styles.value}>
                         <span className={`${styles.status} ${getStatusClass(partner.status)}`}>
-                            {partner.status}
+                            {partner.status ? (STATUS_MAP[partner.status] || partner.status) : "-"}
                         </span>
                     </div>
                 </div>
@@ -185,7 +193,7 @@ export default function PartnerView() {
             {/* Tab Content */}
             <div className={styles.tabContent}>
                 {activeTab === 'signature' && (
-                    <SignatureTab/>
+                    <SignatureTab partnerId={partnerId} />
                 )}
                 {activeTab === 'authorization' && (
                     <AuthorizationTab partnerId={partnerId} />
@@ -195,8 +203,11 @@ export default function PartnerView() {
                 )}
             </div>
             {/* Footer */}
-            <div className={styles.footer}>
-                <Button variant="outline" onClick={() => router.back()} className={styles.backBtn}>
+            <div className={styles.footer} style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <Button variant="outline" onClick={() => window.print()}>
+                    <Printer size={16} style={{ marginRight: 4 }} /> In HĐ
+                </Button>
+                <Button variant="primary" onClick={() => router.back()} className={styles.backBtn}>
                     Đóng
                 </Button>
             </div>

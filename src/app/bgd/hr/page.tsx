@@ -188,8 +188,6 @@ export default function HrPage() {
         notifySuccess={notifySuccess}
       />
 
-      {/* Notification Container */}
-      <NotificationContainer items={notifications} onClose={removeNotification} />
     </div>
   );
 }

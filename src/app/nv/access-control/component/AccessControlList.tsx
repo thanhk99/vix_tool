@@ -8,6 +8,7 @@ import PermissionForm from "./PermissionForm";
 import { EmployeeListItemResponse } from "@/types/hr.types";
 import styles from "./AccessControlList.module.css";
 import EmployeeForm from "./EmployeeForm";
+import { useAuthStore } from "@/stores/auth.store";
 
 export default function AccessControlList() {
     const [employees, setEmployees] = useState<EmployeeListItemResponse[]>([]);
@@ -16,10 +17,16 @@ export default function AccessControlList() {
     const [selectedEmployee, setSelectedEmployee] = useState<EmployeeListItemResponse | null>(null);
     const [openModal, setOpenModal] = useState(false);
 
+    const { deptId } = useAuthStore();
+
     const fetchEmployees = async () => {
         try {
             setLoading(true);
-            const res = await apiClient.get("/v1/hr/employees");
+            const res = await apiClient.get("/v1/hr/employees", {
+                params: {
+                    departmentId: deptId || undefined
+                }
+            });
             setEmployees(res.data.content || []);
         } catch (err) {
             console.error(err);

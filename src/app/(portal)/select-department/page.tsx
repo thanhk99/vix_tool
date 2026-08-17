@@ -8,6 +8,7 @@ import apiClient from '@/lib/api/client';
 export default function SelectDepartmentPage() {
   const [departments, setDepartments] = useState<DepartmentInfo[]>([]);
   const setAuth = useAuthStore((state) => state.setAuth);
+  const setDeptId = useAuthStore((state) => state.setDeptId);
 
   useEffect(() => {
     // In a real app, we might get departments from the token or an endpoint
@@ -15,21 +16,20 @@ export default function SelectDepartmentPage() {
     // For simplicity, assume we can fetch user profile or it's stored.
     // This is a placeholder since the backend returns departments during login.
 
-    // Debug: Log what departments are available in local storage after login
-    console.log('Checking for departments in localStorage...');
-    const token = useAuthStore.getState().token;
+    const token = localStorage.getItem('access_token');
     if (token) {
-      console.log('Token found:', token.substring(0, 20) + '...');
     }
   }, []);
 
   const handleSelect = async (deptId: string) => {
     try {
-      console.log('Attempting to select department:', deptId);
       const res = await authApi.selectDepartment({ deptId });
       if (res.success && res.data) {
-        console.log('Department selection response:', res.data);
-        setAuth(res.data.accessToken, res.data.route, res.data?.user?.id, res.data?.user?.fullName);
+        const payload = JSON.parse(atob(res.data.accessToken.split(".")[1]));
+        setAuth(res.data.accessToken, res.data.route, res.data?.user?.id, res.data?.user?.fullName, payload.roles);
+        if (payload.deptId) {
+            setDeptId(payload.deptId);
+        }
         if (res.data.route) {
           window.location.href = '/' + res.data.route;
         }

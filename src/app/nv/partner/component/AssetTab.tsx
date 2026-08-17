@@ -81,7 +81,14 @@ export default function AssetTab({ partnerId }: AssetTabProps) {
             setLoading(true);
 
             const res = await apiClient.get<AssetResponse>(`/v1/capital-source/partners/${partnerId}/assets`);
-            setAssets(res.data.data || []);
+            const payload = res.data?.data || res.data;
+            if (payload && payload.content !== undefined) {
+                setAssets(payload.content || []);
+            } else if (Array.isArray(payload)) {
+                setAssets(payload);
+            } else {
+                setAssets([]);
+            }
         } catch (error: any) {
             notifyError(
                 "Lỗi",

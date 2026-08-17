@@ -1,13 +1,45 @@
 'use client';
 
+import { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
 import { usePathname, useRouter } from 'next/navigation';
+import { authApi } from '@/lib/api/auth.api';
 import styles from './Header.module.css';
 
 export default function Header() {
-    const { clearAuth } = useAuthStore();
+    const { clearAuth, fullName, setAuth, token, route, userId, roles } = useAuthStore();
     const router = useRouter();
     const pathname = usePathname();
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [dropdownRef]);
+
+    useEffect(() => {
+        async function fetchProfile() {
+            try {
+                const res = await authApi.getMe();
+                if (res.success && res.data) {
+                    setAuth(token as string, route as string, res.data.id, res.data.fullName, roles);
+                }
+            } catch (err) {
+                console.error('Failed to fetch user profile:', err);
+            }
+        }
+        if (token && !fullName) {
+            fetchProfile();
+        }
+    }, [token, fullName, route, roles, setAuth]);
 
     const handleLogout = () => {
         clearAuth();
@@ -33,20 +65,42 @@ export default function Header() {
                 {getTitle()}
             </div>
 
-            <div className={styles.userInfo}>
-                <span className={styles.greeting}>
-                    Xin chào,{' '}
-                    <span className={styles.name}>
-                        Trưởng phòng
-                    </span>
-                </span>
-
-                <button
-                    onClick={handleLogout}
-                    className={styles.logoutBtn}
+            <div className={styles.userInfo} ref={dropdownRef}>
+                <div 
+                    className={styles.userProfile} 
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 >
-                    Đăng xuất
-                </button>
+                    <span className={styles.greeting}>
+                        Xin chào,{' '}
+                        <span className={styles.name}>
+                            {fullName || 'Người dùng'}
+                        </span>
+                    </span>
+                    <span className={styles.arrow}>▼</span>
+                </div>
+
+                {isDropdownOpen && (
+                    <div className={styles.dropdownMenu}>
+                        <button 
+                            className={styles.dropdownItem}
+                            onClick={() => {
+                                setIsDropdownOpen(false);
+                                router.push('/nv/profile');
+                            }}
+                        >
+                            Hồ sơ cá nhân
+                        </button>
+                        <button
+                            onClick={() => {
+                                setIsDropdownOpen(false);
+                                handleLogout();
+                            }}
+                            className={`${styles.dropdownItem} ${styles.logoutText}`}
+                        >
+                            Đăng xuất
+                        </button>
+                    </div>
+                )}
             </div>
         </header>
     );
