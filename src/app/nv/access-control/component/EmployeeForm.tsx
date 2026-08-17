@@ -14,6 +14,7 @@ import { CreateEmployeeRequest } from "@/types/hr.types";
 
 import styles from "./EmployeeForm.module.css";
 import { useNotification } from "@/hooks/useNotification";
+import { useAuthStore } from "@/stores/auth.store";
 
 interface EmployeeFormProps {
     isOpen: boolean;
@@ -68,6 +69,7 @@ export default function EmployeeForm({
     const [isSubmitting, setIsSubmitting] =
         useState(false);
 
+    const { deptId } = useAuthStore();
     const {
         notifyError,
         notifySuccess,
@@ -171,7 +173,8 @@ export default function EmployeeForm({
                 email: formData.email.trim(),
                 fullName: formData.fullName.trim(),
                 password: formData.password?.trim(),
-                role: formData.role,
+                departmentId: formData.departmentId || deptId || undefined,
+                role: formData.role || "MEMBER",
                 phone:
                     formData.phone?.trim() ||
                     undefined,

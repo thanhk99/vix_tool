@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './Modal.module.css';
 import { X } from 'lucide-react';
 
@@ -42,7 +43,12 @@ export default function Modal({
     };
   }, [isOpen, handleKeyDown]);
 
-  if (!isOpen) return null;
+  const [mounted, setMounted] = React.useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   function handleOverlayClick(event: React.MouseEvent<HTMLDivElement>) {
     if (closeOnOverlayClick && event.target === event.currentTarget) {
@@ -50,7 +56,7 @@ export default function Modal({
     }
   }
 
-  return (
+  const modalContent = (
     <div
       className={styles.overlay}
       onClick={handleOverlayClick}
@@ -79,9 +85,10 @@ export default function Modal({
         {/* Body */}
         <div className={styles.body}>{children}</div>
 
-        {/* Footer */}
         {footer && <div className={styles.footer}>{footer}</div>}
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

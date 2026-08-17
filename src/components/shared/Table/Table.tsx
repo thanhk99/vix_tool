@@ -14,7 +14,7 @@ interface TableProps<T> {
   data: T[];
   rowKey: keyof T | ((row: T) => string);
   isLoading?: boolean;
-  emptyText?: string;
+  emptyText?: React.ReactNode;
   caption?: string;
   onRowClick?: (row:T) => void;
   highlightRow?: boolean;

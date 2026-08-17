@@ -7,7 +7,6 @@ import { auditApi, AuditLog } from '@/lib/api/audit.api';
 import styles from './page.module.css';
 
 export default function ProfilePage() {
-    const { email } = useAuthStore();
     const [userProfile, setUserProfile] = useState<any>(null);
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [loading, setLoading] = useState(true);

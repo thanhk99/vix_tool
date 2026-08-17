@@ -161,7 +161,7 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
     try {
       setSaving(true);
 
-      await apiClient.patch(`/v1/capital-source/partners/${partnerId}/customer-type`, {
+      const res: any = await apiClient.patch(`/v1/capital-source/partners/${partnerId}/customer-type`, {
         cusType: formData.cusType,
         businessType: formData.businessType,
         professionalInvestor: formData.professionalInvestor,
@@ -170,11 +170,16 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
         note: formData.note,
       });
 
+      if (res && res.success === false) {
+        notifyError('Lỗi', res.message || 'Không thể cập nhật thông tin');
+        return;
+      }
+
       notifySuccess('Thành công', 'Đã cập nhật thông tin loại hình khách hàng');
       setIsEditing(false);
       await fetchCusType();
     } catch (err: any) {
-      notifyError('Lỗi', err.response?.data?.message || 'Không thể cập nhật thông tin');
+      notifyError('Lỗi', err?.message || err?.response?.data?.message || 'Không thể cập nhật thông tin');
     } finally {
       setSaving(false);
     }

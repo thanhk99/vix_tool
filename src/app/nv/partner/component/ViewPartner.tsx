@@ -8,6 +8,8 @@ import { PartnersItem } from "@/types/funding.types";
 import SignatureTab from "./SignatureTab";
 import CustommerTypeTab from "./CustommerTypeTab";
 import AuthorizationTab from "./AuthorizationTab";
+import AssetTab from "./AssetTab";
+import CrelimitTab from "./CrelimitTab";
 import Button from "@/components/shared/Button/Button";
 
 const STATUS_MAP: Record<string, string> = {
@@ -157,13 +159,27 @@ export default function ViewPartner({
         >
           Loại hình KH
         </Button>
+        <Button variant="bordernone"
+          className={`${styles.tab} ${activeTab === 'asset' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('asset')}
+        >
+          Tài sản đảm bảo
+        </Button>
+        <Button variant="bordernone"
+          className={`${styles.tab} ${activeTab === 'limit' ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab('limit')}
+        >
+          Hạn mức
+        </Button>
       </div>
 
       {/* Tab Content */}
       <div className={styles.tabContent}>
-        {activeTab === 'signature' && <SignatureTab/>}
+        {activeTab === 'signature' && <SignatureTab partnerId={partnerId} />}
         {activeTab === 'authorization' && <AuthorizationTab partnerId={partnerId} />}
         {activeTab === 'custommertype' && <CustommerTypeTab partnerId={partnerId} />}
+        {activeTab === 'asset' && <AssetTab partnerId={partnerId} />}
+        {activeTab === 'limit' && <CrelimitTab partnerId={partnerId} />}
       </div>
 
       {/* Footer */}

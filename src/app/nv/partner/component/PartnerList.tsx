@@ -92,7 +92,7 @@ export default function PartnerList() {
       // Giả định backend dùng page (0-indexed) hoặc page (1-indexed)
       // Hiện tại gửi page=currentPage - 1 cho chuẩn Spring Boot mặc định
       const keywordQuery = searchKeyword ? `&keyword=${encodeURIComponent(searchKeyword)}` : '';
-      const res = await apiClient.get(`/v1/capital-source/partners?page=${currentPage - 1}&size=${pageSize}${keywordQuery}`);
+      const res: any = await apiClient.get(`/v1/capital-source/partners?page=${currentPage - 1}&size=${pageSize}${keywordQuery}`);
       
       let data = [];
       let total = 0;

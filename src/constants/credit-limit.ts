@@ -1,7 +1,8 @@
 export const LIMIT_TYPES = [
   { id: 'CASA', name: 'CASA' },
-  { id: 'CLEAN', name: 'Clean Limit' },
-  { id: 'TRADE', name: 'Trade Finance' }
+  { id: 'CLEAN', name: 'CLEAN' },
+  { id: 'Tài sản đảm bảo', name: 'Tài sản đảm bảo' },
+  { id: 'Tài sản bảo lãnh', name: 'Tài sản bảo lãnh' }
 ];
 
 export const CURRENCIES = [
@@ -10,9 +11,14 @@ export const CURRENCIES = [
 ];
 
 export const PURPOSES = [
-  { id: 'BDS', name: 'Bất động sản' },
-  { id: 'KD', name: 'Kinh doanh' },
-  { id: 'TD', name: 'Tiêu dùng' }
+  { id: 'Đầu tư', name: 'Đầu tư' },
+  { id: 'Gapping', name: 'Gapping' },
+  { id: 'TPCP', name: 'TPCP' },
+  { id: 'Margin', name: 'Margin' },
+  { id: 'Cổ phiếu', name: 'Cổ phiếu' },
+  { id: 'Repo', name: 'Repo' },
+  { id: 'CASA-TU', name: 'CASA-TU' },
+  { id: 'CASA-CK', name: 'CASA-CK' }
 ];
 
 export const ASSET_TYPES = [

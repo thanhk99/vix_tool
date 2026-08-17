@@ -9,6 +9,7 @@ import Modal from '@/components/shared/Modal/Modal';
 import Button from '@/components/shared/Button/Button';
 import Input from '@/components/shared/Input/Input';
 import Table, { TableColumn } from '@/components/shared/Table/Table';
+import AssetFormModal from '@/components/shared/AssetFormModal/AssetFormModal';
 import styles from './CreditLimitTable.module.css';
 
 interface CreditLimitModalProps {
@@ -25,6 +26,7 @@ export default function CreditLimitModal({ isOpen, onClose, limitData, initialTa
   const [partnerOptions, setPartnerOptions] = useState<any[]>([]);
   const [assets, setAssets] = useState<any[]>([]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [isCreatingAsset, setIsCreatingAsset] = useState(false);
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [partnerSearchInput, setPartnerSearchInput] = useState('');
@@ -43,7 +45,7 @@ export default function CreditLimitModal({ isOpen, onClose, limitData, initialTa
 
   const fetchPartners = useCallback(async () => {
     try {
-      const res = await apiClient.get('/v1/capital-source/partners?size=100');
+      const res: any = await apiClient.get('/v1/capital-source/partners?size=100');
       if (res?.content) {
         setPartnerOptions(res.content);
       } else if (res?.data?.content) {
@@ -165,7 +167,7 @@ export default function CreditLimitModal({ isOpen, onClose, limitData, initialTa
     { key: 'assetType', title: 'Loại TSĐB' },
     { key: 'issuer', title: 'Tổ chức phát hành' },
     { key: 'issuerCode', title: 'Mã TCPH' },
-    { key: 'parValue', title: 'Mệnh giá', align: 'right', render: (val) => val?.toLocaleString('vi-VN') },
+    { key: 'parValue', title: 'Mệnh giá', align: 'right', render: (val) => val != null ? Number(val).toLocaleString('vi-VN') : '' },
     { key: 'issueDate', title: 'Ngày phát hành', align: 'center', render: (val) => val ? new Date(val as string).toLocaleDateString('en-GB') : '' },
     { key: 'maturityDate', title: 'Ngày đáo hạn', align: 'center', render: (val) => val ? new Date(val as string).toLocaleDateString('en-GB') : '' },
     { key: 'callDate', title: 'Ngày mua lại trước hạn', align: 'center', render: (val) => val ? new Date(val as string).toLocaleDateString('en-GB') : '' },
@@ -184,11 +186,43 @@ export default function CreditLimitModal({ isOpen, onClose, limitData, initialTa
     }
   }, [partnerCode, isDropdownOpen]);
 
-  const activePartners = partnerOptions.filter(p => p.status === 'Active' || p.status === 'ACTIVE');
+  const activePartners = partnerOptions.filter(p => p.status === 'APPROVED' || p.status === 'Active' || p.status === 'ACTIVE');
   const filteredPartners = activePartners.filter(p => 
     (p.branchCusId || '').toLowerCase().includes(partnerSearchInput.toLowerCase()) || 
     (p.cusName || '').toLowerCase().includes(partnerSearchInput.toLowerCase())
   );
+
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleApprove = async () => {
+    if (!limitData?.id) return;
+    try {
+      setIsProcessing(true);
+      await apiClient.put(`/v1/capital-source/credit-limits/${limitData.id}/approve`);
+      notifySuccess('Thành công', 'Đã duyệt toàn bộ hạn mức của đối tác');
+      onClose();
+    } catch (error: any) {
+      console.error(error);
+      notifyError('Lỗi', error.response?.data?.message || 'Không thể phê duyệt');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!limitData?.id) return;
+    try {
+      setIsProcessing(true);
+      await apiClient.put(`/v1/capital-source/credit-limits/${limitData.id}/reject`);
+      notifySuccess('Thành công', 'Đã từ chối toàn bộ hạn mức của đối tác');
+      onClose();
+    } catch (error: any) {
+      console.error(error);
+      notifyError('Lỗi', error.response?.data?.message || 'Không thể từ chối');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <Modal
@@ -198,10 +232,16 @@ export default function CreditLimitModal({ isOpen, onClose, limitData, initialTa
       size="xl"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-          <Button variant="outline" onClick={onClose}>Hủy</Button>
+          <Button variant="outline" onClick={onClose} disabled={isProcessing}>Hủy</Button>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <Button variant="outline">Lưu nháp</Button>
-            <Button variant="primary" onClick={handleSave}>Lưu</Button>
+            {(limitData?.status === 'PENDING_APPROVAL' || limitData?.status === 'PENDING' || limitData?.status === 'Chờ duyệt') && (
+               <>
+                 <Button variant="outline" onClick={handleReject} disabled={isProcessing} style={{ color: 'red', borderColor: 'red' }}>Từ chối</Button>
+                 <Button variant="primary" onClick={handleApprove} disabled={isProcessing} style={{ background: 'green', borderColor: 'green' }}>Phê duyệt</Button>
+               </>
+            )}
+            <Button variant="outline" disabled={isProcessing}>Lưu nháp</Button>
+            <Button variant="primary" onClick={handleSave} disabled={isProcessing}>Lưu</Button>
           </div>
         </div>
       }
@@ -445,7 +485,16 @@ export default function CreditLimitModal({ isOpen, onClose, limitData, initialTa
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <Button variant="outline"><Plus size={16} style={{ marginRight: '4px', display: 'inline' }} /> Thêm mới</Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (!limitData?.id) {
+                      notifyError("Cảnh báo", "Vui lòng lưu hạn mức trước khi thêm Tài sản đảm bảo");
+                      return;
+                    }
+                    setIsCreatingAsset(true);
+                  }}
+                ><Plus size={16} style={{ marginRight: '4px', display: 'inline' }} /> Thêm mới</Button>
                 <Button variant="outline"><Edit2 size={16} style={{ marginRight: '4px', display: 'inline' }} /> Sửa</Button>
                 <Button variant="outline"><Trash2 size={16} style={{ marginRight: '4px', display: 'inline', color: 'red' }} /> Xóa</Button>
                 <Button variant="outline"><Upload size={16} style={{ marginRight: '4px', display: 'inline' }} /> Import</Button>
@@ -471,11 +520,28 @@ export default function CreditLimitModal({ isOpen, onClose, limitData, initialTa
                     <FileBox size={48} style={{ opacity: 0.3, margin: '0 auto 16px auto' }} />
                     <p style={{ fontWeight: 500, color: 'var(--text-primary)' }}>Chưa có dữ liệu</p>
                     <p style={{ fontSize: '14px', marginBottom: '16px' }}>Vui lòng thêm mới hoặc import danh mục TSĐB</p>
-                    <Button variant="outline"><Plus size={16} style={{ marginRight: '4px', display: 'inline' }} /> Thêm mới</Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        if (!limitData?.id) {
+                          notifyError("Cảnh báo", "Vui lòng lưu hạn mức trước khi thêm Tài sản đảm bảo");
+                          return;
+                        }
+                        setIsCreatingAsset(true);
+                      }}
+                    ><Plus size={16} style={{ marginRight: '4px', display: 'inline' }} /> Thêm mới</Button>
                   </div>
                 }
               />
             </div>
+            
+            <AssetFormModal
+              isOpen={isCreatingAsset}
+              onClose={() => setIsCreatingAsset(false)}
+              partnerId={formData.partnerId}
+              limitId={limitData?.id}
+              onSuccess={fetchAssets}
+            />
           </div>
         )}
       </div>

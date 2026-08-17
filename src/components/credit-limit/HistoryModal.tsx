@@ -22,7 +22,7 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
 
   const fetchPartners = useCallback(async () => {
     try {
-      const res = await apiClient.get('/v1/capital-source/partners?size=100');
+      const res: any = await apiClient.get('/v1/capital-source/partners?size=100');
       if (res?.content) {
         setPartnerOptions(res.content);
       } else if (res?.data?.content) {

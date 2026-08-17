@@ -1,5 +1,9 @@
-﻿import UnderConstruction from '@/components/shared/UnderConstruction/UnderConstruction';
+import ContractDebtList from './component/ContractDebtList';
 
 export default function Page() {
-  return <UnderConstruction title="Quản lý Khế ước Nhận Nợ" />;
+  return (
+    <div style={{ padding: '20px' }}>
+      <ContractDebtList />
+    </div>
+  );
 }

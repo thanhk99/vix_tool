@@ -175,6 +175,7 @@ export interface AssetFormData {
 }
 
 export interface Signature {
+    id?: string;
     fileName: string;
     typeSignature: string;
     description: string;
@@ -184,6 +185,7 @@ export interface Signature {
 }
 
 export interface SignatureFormData {
+    id?: string;
     fileName: string;
     typeSignature: string;
     description: string;

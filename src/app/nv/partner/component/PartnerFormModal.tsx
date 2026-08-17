@@ -137,6 +137,18 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
             }
         }
 
+        // 5. Nhà đầu tư chuyên nghiệp
+        if (formData.professionalInvestor) {
+            if (!formData.professionalStartDate) {
+                notifyError("Lỗi", "Ngày bắt đầu NĐT chuyên nghiệp không được để trống khi là NĐT chuyên nghiệp");
+                return false;
+            }
+            if (formData.professionalEndDate && new Date(formData.professionalEndDate) < new Date(formData.professionalStartDate)) {
+                notifyError("Lỗi ngày tháng", "Ngày kết thúc NĐT chuyên nghiệp phải sau hoặc bằng ngày bắt đầu!");
+                return false;
+            }
+        }
+
         return true;
     };
 
@@ -167,15 +179,15 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
                 cusType: formData.cusType || '',
                 businessType: formData.businessType || '',
                 professionalInvestor: formData.professionalInvestor || false,
-                professionalStartDate: formData.professionalStartDate || null,
-                professionalEndDate: formData.professionalEndDate || null,
+                professionalStartDate: formData.professionalInvestor ? formData.professionalStartDate : null,
+                professionalEndDate: formData.professionalInvestor ? formData.professionalEndDate : null,
                 status: formData.status || 'ACTIVE',
             };
 
+            let res: any;
             if (partnerId) {
                 // Edit
-                await apiClient.put(`/v1/capital-source/partners/${partnerId}`, submitData);
-                notifySuccess('Thành công', 'Cập nhật đối tác thành công!');
+                res = await apiClient.put(`/v1/capital-source/partners/${partnerId}`, submitData);
             } else {
                 // Create
                 const createData = {
@@ -185,14 +197,20 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
                     updatedBy: userId,
                     lastUpdated: new Date().toISOString().split("T")[0],
                 };
-                await apiClient.post("/v1/capital-source/partners", createData);
-                notifySuccess('Thành công', 'Thêm mới đối tác thành công!');
+                res = await apiClient.post("/v1/capital-source/partners", createData);
+            }
+
+            if (res && res.success === false) {
+                notifyError('Lỗi', res.message || 'Thao tác thất bại!');
+                return;
             }
             
+            notifySuccess('Thành công', partnerId ? 'Cập nhật đối tác thành công!' : 'Thêm mới đối tác thành công!');
             onSuccess();
             onClose();
         } catch (error: any) {
-            notifyError('Lỗi', error.response?.data?.message || 'Có lỗi xảy ra!');
+            const errorMsg = error?.message || error?.response?.data?.message || 'Có lỗi xảy ra!';
+            notifyError('Lỗi', errorMsg);
         } finally {
             setSaving(false);
         }
@@ -412,7 +430,7 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
                         
                         <div className={styles.tabContent}>
                             {activeTab === 'signature' && (
-                                <SignatureTab />
+                                <SignatureTab partnerId={partnerId || ''} />
                             )}
                             {activeTab === 'authorization' && (
                                 <AuthorizationTab partnerId={partnerId || ''} />

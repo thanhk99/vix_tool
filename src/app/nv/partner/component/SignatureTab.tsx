@@ -413,7 +413,7 @@ export default function SignatureTab({ partnerId }: { partnerId: string }) {
                 <Table
                     columns={columns}
                     data={signatures}
-                    rowKey="id"
+                    rowKey={(row) => row.id || row.fileName}
                     emptyText="Không có dữ liệu chữ ký"
                 />
             </div>

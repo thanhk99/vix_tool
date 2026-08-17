@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Plus, Download, Edit2, Eye, RefreshCw, X, Filter, Trash2, FileBox, Clock, ChevronRight, ChevronDown, List } from 'lucide-react';
+import { Search, Plus, Download, Edit2, Eye, RefreshCw, X, Filter, Trash2, FileBox, Clock, ChevronRight, ChevronDown, List, Check } from 'lucide-react';
 import { CreditLimit } from '../../types/credit-limit';
 import { LIMIT_TYPES } from '../../constants/credit-limit';
 import CreditLimitModal from './CreditLimitModal';
@@ -9,6 +9,7 @@ import HistoryModal from './HistoryModal';
 import styles from './CreditLimitTable.module.css';
 import apiClient from '@/lib/api/client';
 import { usePermission } from '@/hooks/usePermission';
+import { ActionCode, ResourceCode } from '@/types/permission.types';
 import Button from '@/components/shared/Button/Button';
 import Table, { TableColumn } from '@/components/shared/Table/Table';
 import Input from '@/components/shared/Input/Input';
@@ -47,17 +48,17 @@ export default function CreditLimitTable() {
 
   // Permission hooks
   const { hasPermission } = usePermission();
-  const canView = hasPermission('CAPITAL_LIMIT', 'VIEW');
-  const canCreate = hasPermission('CAPITAL_LIMIT', 'CREATE');
-  const canUpdate = hasPermission('CAPITAL_LIMIT', 'UPDATE');
-  const canExport = hasPermission('CAPITAL_LIMIT', 'EXPORT');
-  const canDelete = hasPermission('CAPITAL_LIMIT', 'DELETE');
+  const canView = hasPermission(ResourceCode.CAPITAL_LIMIT, ActionCode.VIEW);
+  const canCreate = hasPermission(ResourceCode.CAPITAL_LIMIT, ActionCode.CREATE);
+  const canUpdate = hasPermission(ResourceCode.CAPITAL_LIMIT, ActionCode.UPDATE);
+  const canExport = hasPermission(ResourceCode.CAPITAL_LIMIT, ActionCode.EXPORT);
+  const canDelete = hasPermission(ResourceCode.CAPITAL_LIMIT, ActionCode.DELETE);
   
-  const { notifyError } = useNotification();
+  const { notifyError, notifySuccess } = useNotification();
 
   const fetchPartners = useCallback(async () => {
     try {
-      const res = await apiClient.get('/v1/capital-source/partners?size=100');
+      const res: any = await apiClient.get('/v1/capital-source/partners?size=100');
       if (res?.content) {
         setPartnerOptions(res.content);
       } else if (res?.data?.content) {
@@ -86,7 +87,7 @@ export default function CreditLimitTable() {
       if (searchStartDate) params.append('startDate', searchStartDate);
       if (searchEndDate) params.append('endDate', searchEndDate);
       
-      const res = await apiClient.get(`/v1/capital-source/credit-limits?${params.toString()}`);
+      const res: any = await apiClient.get(`/v1/capital-source/credit-limits?${params.toString()}`);
       
       if (res?.content) {
         setData(res.content);
@@ -162,62 +163,38 @@ export default function CreditLimitTable() {
   };
 
   const treeData = useMemo(() => {
-    // Group by contactNo
-    const groups: Record<string, any[]> = {};
-    data.forEach(item => {
-      const groupKey = item.contactNo || 'other';
-      if (!groups[groupKey]) groups[groupKey] = [];
-      groups[groupKey].push(item);
-    });
-
     const flattened: any[] = [];
     let groupIndex = 1;
 
-    Object.values(groups).forEach(groupItems => {
-      // If a group has only 1 item, treat it as a standalone root item.
-      if (groupItems.length === 1) {
-        flattened.push({
-          ...groupItems[0],
-          _treeInfo: {
-            stt: String(groupIndex),
-            isRoot: true,
-            hasChildren: false,
-          }
-        });
-        groupIndex++;
-      } else {
-        // Find the "parent" (e.g. limitId ends without _something, or just the first item)
-        // In the mockup, there's a parent row with total aggregated data, but in our DB they are all distinct.
-        // We will just assume the first item is the parent, and others are children.
-        const parent = groupItems[0];
-        const parentKey = parent.id;
-        
-        flattened.push({
-          ...parent,
-          _treeInfo: {
-            stt: String(groupIndex),
-            isRoot: true,
-            hasChildren: true,
-            isExpanded: !!expandedRows[parentKey],
-            groupKey: parentKey
-          }
-        });
-
-        if (expandedRows[parentKey]) {
-          groupItems.slice(1).forEach((child, childIdx) => {
-            flattened.push({
-              ...child,
-              _treeInfo: {
-                stt: `${groupIndex}.${childIdx + 1}`,
-                isRoot: false,
-                hasChildren: false,
-                parentId: parentKey
-              }
-            });
-          });
+    (data as any[]).forEach((parent, index) => {
+      const parentKey = parent.id || String(index);
+      const hasChildren = parent.children && Array.isArray(parent.children) && parent.children.length > 0;
+      
+      flattened.push({
+        ...parent,
+        _treeInfo: {
+          stt: String(groupIndex),
+          isRoot: true,
+          hasChildren: hasChildren,
+          isExpanded: !!expandedRows[parentKey],
+          groupKey: parentKey
         }
-        groupIndex++;
+      });
+
+      if (hasChildren && expandedRows[parentKey]) {
+        parent.children.forEach((child: any, childIdx: number) => {
+          flattened.push({
+            ...child,
+            _treeInfo: {
+              stt: `${groupIndex}.${childIdx + 1}`,
+              isRoot: false,
+              hasChildren: false,
+              parentId: parentKey
+            }
+          });
+        });
       }
+      groupIndex++;
     });
 
     return flattened;
@@ -369,6 +346,43 @@ export default function CreditLimitTable() {
     setSelectedLimit(limit);
     setInitialModalTab(1);
     setIsCreditLimitModalOpen(true); 
+  };
+
+  const canApproveReject = useMemo(() => {
+    if (!selectedRowId) return false;
+    const limit = treeData.find((item: any) => item.id === selectedRowId);
+    if (!limit) return false;
+    return limit.status === 'PENDING_APPROVAL' || limit.status === 'PENDING';
+  }, [selectedRowId, treeData]);
+
+  const handleApprove = async () => {
+    if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hạn mức để duyệt');
+    try {
+      setIsLoading(true);
+      await apiClient.put(`/v1/capital-source/credit-limits/${selectedRowId}/approve`);
+      notifySuccess('Thành công', 'Đã duyệt toàn bộ hạn mức của đối tác');
+      fetchCreditLimits();
+      setSelectedRowId(null);
+    } catch (error: any) {
+      notifyError('Lỗi', error.response?.data?.message || 'Không thể phê duyệt');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hạn mức để từ chối');
+    try {
+      setIsLoading(true);
+      await apiClient.put(`/v1/capital-source/credit-limits/${selectedRowId}/reject`);
+      notifySuccess('Thành công', 'Đã từ chối toàn bộ hạn mức của đối tác');
+      fetchCreditLimits();
+      setSelectedRowId(null);
+    } catch (error: any) {
+      notifyError('Lỗi', error.response?.data?.message || 'Không thể từ chối');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!canView) {

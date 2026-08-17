@@ -86,7 +86,15 @@ export default function CreateEmployeeModal({
 
     setIsSubmitting(true);
     try {
-      const res = await hrApi.createEmployee(formData);
+      const payload: CreateEmployeeRequest = {
+        ...formData,
+        email: formData.email.trim(),
+        fullName: formData.fullName.trim(),
+        password: formData.password?.trim(),
+        role: formData.role || 'MEMBER',
+        phone: formData.phone?.trim() || undefined,
+      };
+      const res = await hrApi.createEmployee(payload);
       if (res.success) {
         notifySuccess('Thành công', 'Đã thêm nhân viên mới');
         onSuccess();
