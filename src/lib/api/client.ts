@@ -1,8 +1,31 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth.store';
 
+/**
+ * Hàm xác định Base URL của Backend API một cách linh hoạt:
+ * 1. Nếu biến NEXT_PUBLIC_API_URL được cấu hình cụ thể (không phải localhost mặc định), ưu tiên sử dụng.
+ * 2. Nếu đang chạy trên trình duyệt (client-side), tự động phát hiện hostname hiện tại (ví dụ: dhcd.vix.local, 10.16.7.73)
+ *    và trỏ về cổng 8888 của chính host đó.
+ * 3. Fallback về NEXT_PUBLIC_API_URL hoặc http://localhost:8888.
+ */
+export const getApiBaseUrl = (): string => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl && !envUrl.includes('localhost:8888') && !envUrl.includes('127.0.0.1:8888')) {
+    return envUrl;
+  }
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return `${window.location.protocol}//${hostname}:8888`;
+    }
+  }
+
+  return envUrl || 'http://dhcd.vix.local:8888';
+};
+
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,6 +48,9 @@ const processQueue = (error: any, token: string | null = null) => {
 
 apiClient.interceptors.request.use(
   (config) => {
+    // Luôn đảm bảo baseURL chính xác theo môi trường hiện tại
+    config.baseURL = getApiBaseUrl();
+
     if (typeof window !== "undefined") {
       const { token, deptId } = useAuthStore.getState();
       if (token) {
@@ -76,8 +102,8 @@ apiClient.interceptors.response.use(
       if (!refreshToken) {
         useAuthStore.getState().clearAuth();
         if (typeof window !== 'undefined') {
-          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN;
-          if (baseDomain && window.location.hostname !== baseDomain) {
+          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'vix.local';
+          if (baseDomain && window.location.hostname !== baseDomain && !window.location.hostname.endsWith(`.${baseDomain}`)) {
             window.location.href = `${window.location.protocol}//${baseDomain}${window.location.port ? ':' + window.location.port : ''}`;
           } else {
             window.location.href = '/';
@@ -87,7 +113,7 @@ apiClient.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'}/v1/identity/auth/refresh-token`, { refreshToken });
+        const { data } = await axios.post(`${getApiBaseUrl()}/v1/identity/auth/refresh-token`, { refreshToken });
         
         // Extract new tokens based on expected API response format
         const newAccessToken = data?.data?.accessToken || data?.accessToken;
@@ -107,8 +133,8 @@ apiClient.interceptors.response.use(
         useAuthStore.getState().clearAuth();
         
         if (typeof window !== 'undefined') {
-          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN;
-          if (baseDomain && window.location.hostname !== baseDomain) {
+          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'vix.local';
+          if (baseDomain && window.location.hostname !== baseDomain && !window.location.hostname.endsWith(`.${baseDomain}`)) {
             window.location.href = `${window.location.protocol}//${baseDomain}${window.location.port ? ':' + window.location.port : ''}`;
           } else {
             window.location.href = '/';
