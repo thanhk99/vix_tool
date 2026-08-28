@@ -21,7 +21,7 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
-  padding: var(--space-4) var(--space-4) 0;
+  padding: var(--space-2) var(--space-2) 0;
   caption-side: top;
 }
 
@@ -30,7 +30,7 @@
 }
 
 .th {
-  padding: var(--space-3) var(--space-2);
+  padding: var(--space-2) var(--space-2);
   font-size: 11px;
   font-weight: 700;
   color: var(--text-secondary);
@@ -42,7 +42,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background-color: var(--background);
+  background-color: var(--surface);
 }
 
 .th::after {
@@ -77,11 +77,27 @@
 }
 
 .td {
-  padding: 8px 12px;
+  padding: 4px 8px;
   color: var(--text-primary);
   vertical-align: middle;
   border-right: 1px solid var(--border);
   white-space: nowrap;
+}
+
+.td:nth-child(even) {
+  background-color: #d8dadc;
+}
+
+.th:nth-child(even) {
+  background-color: #d8dadc;
+}
+
+.tr:hover .td {
+  background-color: var(--background);
+}
+
+.selectedRow .td {
+  background-color: #dbeafe !important;
 }
 
 .td:last-child {
@@ -89,7 +105,7 @@
 }
 
 .stateCell {
-  padding: var(--space-10) var(--space-4);
+  padding: var(--space-4) var(--space-2);
   text-align: center;
   color: var(--text-secondary);
 }

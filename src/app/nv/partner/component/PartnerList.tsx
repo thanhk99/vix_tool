@@ -1,24 +1,30 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { getStatusDisplay } from '@/constants/status';
 import styles from './PartnerList.module.css';
 import Button from '@/components/shared/Button/Button';
 import Table, { TableColumn } from '@/components/shared/Table/Table';
 import Input from '@/components/shared/Input/Input';
 import { CreatePartnerRequest, PartnersItem } from '@/types/funding.types';
 import apiClient from '@/lib/api/client';
-import { ChevronLeft, ChevronRight, Pen, Trash2, X, MoreVertical, CheckCircle, Plus, RefreshCw, FileSpreadsheet, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pen, Trash2, X, MoreVertical, CheckCircle, Plus, RefreshCw, FileSpreadsheet, Eye, Clock, FileText, Check } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useNotification } from '@/hooks/useNotification';
 import { useRouter } from 'next/navigation';
 import Modal from '@/components/shared/Modal/Modal';
 import ViewPartner from './ViewPartner';
 import PartnerFormModal from './PartnerFormModal';
+import PartnerApprovalModal from './PartnerApprovalModal';
+import { usePermission } from '@/hooks/usePermission';
+import { ResourceCode, ActionCode } from '@/types/permission.types';
+import { useExportJob } from '@/hooks/useExportJob';
 
 export default function PartnerList() {
   const [partners, setPartners] = useState<PartnersItem[]>([]);
   const [loading, setLoading] = useState(false);
   const { notifyError, notifySuccess, notifyWarning, notifyInfo } = useNotification();
+  const { isExporting, triggerExport } = useExportJob();
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -27,6 +33,11 @@ export default function PartnerList() {
 
   const [editPartnerId, setEditPartnerId] = useState<string | null>(null);
   const userId = useAuthStore((state) => state.userId);
+
+  const { hasPermission } = usePermission();
+  const canApprove = hasPermission(ResourceCode.CAPITAL_PARTNER, ActionCode.APPROVE);
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [approvalPartner, setApprovalPartner] = useState<PartnersItem | null>(null);
 
   // Tinh toan cho phan trang (Server-side)
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -111,7 +122,25 @@ export default function PartnerList() {
          total = Array.isArray(data) ? data.length : 0;
       }
       
-      setPartners(Array.isArray(data) ? data : []);
+      const rawList = Array.isArray(data) ? data : [];
+      const filteredData = rawList.filter(
+        (item: any) => item.status !== 'DRAFT' && !item.cusId?.startsWith('DRAFT_') && item.cusName !== 'Bản nháp'
+      );
+      
+      if (typeof window !== 'undefined') {
+        filteredData.forEach((p: any) => {
+          const key = `partner_snapshot_${p.id}`;
+          const isApproved = ['ACTIVE', 'APPROVED', 'ĐÃ DUYỆT', 'HOẠT ĐỘNG'].includes(String(p.status || '').toUpperCase());
+          if (isApproved || !localStorage.getItem(key)) {
+            // Only update baseline if approved or not set yet
+            if (isApproved) {
+              localStorage.setItem(key, JSON.stringify(p));
+            }
+          }
+        });
+      }
+
+      setPartners(filteredData);
       setTotalItems(total);
     } catch (error) {
       notifyError('Lỗi', 'Không tải được dữ liệu!');
@@ -151,31 +180,21 @@ export default function PartnerList() {
     setSearchKeyword('');
   };
 
-  const STATUS_MAP: Record<string, string> = {
-    ACTIVE: 'Đã duyệt',
-    APPROVED: 'Đã duyệt',
-    PENDING: 'Chờ duyệt',
-    PENDING_APPROVAL: 'Chờ duyệt',
-    INACTIVE: 'Ngừng hoạt động'
+  const getStatusClass = (status: string) => {
+    const { className } = getStatusDisplay(status);
+    return styles[className] || className;
   };
 
-  // getStatusClass 
-  const STATUS_CLASS: Record<string, string> = {
-    ACTIVE: styles.active,
-    APPROVED: styles.active,
-    PENDING: styles.pending,
-    PENDING_APPROVAL: styles.pending,
-    INACTIVE: styles.inactive,
+  const getStatusLabel = (status: string) => {
+    return getStatusDisplay(status).label;
   };
-
-  const getStatusClass = (status: string) => STATUS_CLASS[status as keyof typeof STATUS_CLASS] ?? "";
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa?")) return;
     try {
       setLoading(true);
       await apiClient.delete(`/v1/capital-source/partners/${id}`);
-      notifySuccess("Thành công", "Đã xóa đối tác");
+      notifySuccess("Thành công", "Đã gửi yêu cầu xóa đối tác");
       fetchPartners();
     } catch (e) {
       notifyError("Lỗi", "Không thể xóa đối tác");
@@ -185,11 +204,14 @@ export default function PartnerList() {
     }
   };
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, currentStatus?: string) => {
     try {
       setLoading(true);
-      // Giả định API approve. Nếu API khác, hãy điều chỉnh
-      await apiClient.put(`/v1/capital-source/partners/${id}/approve`, {});
+      if (currentStatus === 'PENDING_DELETE' || currentStatus === 'Chờ duyệt xoá') {
+        await apiClient.put(`/v1/capital-source/partners/${id}/approve-delete`, {});
+      } else {
+        await apiClient.put(`/v1/capital-source/partners/${id}/approve`, {});
+      }
       notifySuccess("Thành công", "Đã phê duyệt đối tác");
       fetchPartners();
     } catch (e) {
@@ -198,6 +220,37 @@ export default function PartnerList() {
       setLoading(false);
       setOpenActionMenuId(null);
     }
+  };
+
+  const handleReject = async (id: string, currentStatus?: string) => {
+    try {
+      if (!confirm("Bạn có chắc chắn muốn từ chối đối tác này?")) return;
+      setLoading(true);
+      if (currentStatus === 'PENDING_DELETE' || currentStatus === 'Chờ duyệt xoá') {
+        await apiClient.put(`/v1/capital-source/partners/${id}/reject-delete`, {});
+        notifySuccess("Thành công", "Đã từ chối xóa đối tác");
+      } else {
+        await apiClient.put(`/v1/capital-source/partners/${id}/reject`, {});
+        notifySuccess("Thành công", "Đã từ chối đối tác");
+      }
+      fetchPartners();
+    } catch (e) {
+      notifyError("Lỗi", "Không thể từ chối đối tác");
+    } finally {
+      setLoading(false);
+      setOpenActionMenuId(null);
+    }
+  };
+
+  const formatDate = (val: any) => {
+    if (!val) return "-";
+    try {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('vi-VN');
+      }
+    } catch (e) {}
+    return String(val);
   };
 
   const columns: TableColumn<PartnersItem>[] = [
@@ -220,7 +273,7 @@ export default function PartnerList() {
     {
       key: "cusName",
       title: "Tên KH",
-      width: 250
+      width: 230
     },
     {
       key: "idCode",
@@ -230,12 +283,14 @@ export default function PartnerList() {
     {
       key: "fistIssueDate",
       title: "Cấp lần đầu",
-      width: 100
+      width: 95,
+      render: (val) => formatDate(val)
     },
     {
       key: "lastIssueDate",
       title: "Cấp cuối",
-      width: 100
+      width: 95,
+      render: (val) => formatDate(val)
     },
     {
       key: "issueBy",
@@ -250,14 +305,15 @@ export default function PartnerList() {
     {
       key: "opIssueDate",
       title: "Ngày cấp GP",
-      width: 100
+      width: 95,
+      render: (val) => formatDate(val)
     },
     {
       key: "status",
       title: "Trạng thái",
       render: (value) => {
         const statusVal = value as string;
-        const displayStatus = STATUS_MAP[statusVal] || statusVal;
+        const displayStatus = getStatusLabel(statusVal);
         return (
           <span className={`${styles.status} ${getStatusClass(statusVal) ?? ""}`}>
             {displayStatus}
@@ -267,94 +323,29 @@ export default function PartnerList() {
       width: 90
     },
     {
+      key: "updatedBy",
+      title: "User thực hiện",
+      render: (val) => (val as string) || "-",
+      width: 100
+    },
+    {
       key: "lastUpdated",
       title: "Ngày sửa",
-      width: 90
+      render: (val) => formatDate(val),
+      width: 95
     },
     {
-      key: "updatedBy",
-      title: "Người sửa",
-      width: 90
+      key: "approvedBy",
+      title: "User duyệt",
+      render: (val) => (val as string) || "-",
+      width: 100
     },
     {
-      key: "actions",
-      title: "Thao tác",
-      width: 60,
-      render: (_, record) => (
-        <div className={styles.actionButtons}>
-          <button 
-            className={styles.moreBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (openActionMenuId === record.id) {
-                setOpenActionMenuId(null);
-                setMenuPosition(null);
-              } else {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setOpenActionMenuId(record.id);
-                setMenuPosition({
-                  top: rect.bottom,
-                  right: window.innerWidth - rect.right,
-                });
-              }
-            }}
-          >
-            <MoreVertical size={16} />
-          </button>
-          
-          {openActionMenuId === record.id && menuPosition && (() => {
-            const statusVal = String(record.status || '').trim().toUpperCase();
-            const isPending = ['PENDING', 'PENDING_APPROVAL', 'CHỜ DUYỆT', 'CHO_DUYET', 'WAIT_APPROVE', 'WAITING'].includes(statusVal);
-            const isActive = ['ACTIVE', 'ĐÃ DUYỆT', 'DA_DUYET', 'APPROVED'].includes(statusVal);
-
-            return (
-              <div 
-                className={styles.dropdownMenu}
-                style={{
-                  position: 'fixed',
-                  top: menuPosition.top + 'px',
-                  right: menuPosition.right + 'px',
-                  zIndex: 9999
-                }}
-              >
-                <button onClick={(e) => {
-                  e.stopPropagation();
-                  setEditPartnerId(record.id);
-                  setIsOpenModal(true);
-                  setOpenActionMenuId(null);
-                }}>
-                  <Pen size={14} /> Sửa
-                </button>
-                
-                <button 
-                  disabled={!isPending}
-                  className={!isPending ? styles.disabledBtn : ''}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isPending) return;
-                    handleApprove(record.id);
-                  }}
-                >
-                  <CheckCircle size={14} /> Phê duyệt
-                </button>
-
-                <button 
-                  disabled={!isActive}
-                  className={!isActive ? styles.disabledBtn : styles.dangerBtn}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isActive) return;
-                    handleDelete(record.id);
-                  }}
-                >
-                  <Trash2 size={14} /> Xóa
-                </button>
-              </div>
-            );
-          })()}
-        </div>
-      ),
-    },
+      key: "approvedAt",
+      title: "Ngày duyệt",
+      render: (val) => formatDate(val),
+      width: 95
+    }
   ];
 
   // Xu ly phan trang
@@ -378,38 +369,7 @@ export default function PartnerList() {
   };
 
   const handleExportExcel = () => {
-    if (!currentData || currentData.length === 0) {
-      notifyWarning('Cảnh báo', 'Không có dữ liệu để xuất Excel!');
-      return;
-    }
-    
-    const headers = ["Mã đối tác", "Tên đối tác", "Tên viết tắt", "Địa chỉ", "Mã số thuế / CMND", "Loại khách hàng", "Trạng thái"];
-    const rows = currentData.map(p => [
-      p.cusId || '',
-      p.cusName || '',
-      p.shortName || '',
-      p.address || '',
-      p.idCode || '',
-      p.cusType || '',
-      STATUS_MAP[p.status as keyof typeof STATUS_MAP] || p.status || ''
-    ]);
-
-    const csvContent = "\uFEFF" + [
-      headers.join(","),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Danh_sach_doi_tac_${new Date().getTime()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    notifySuccess('Thành công', 'Đã xuất file Excel!');
+    triggerExport('EXPORT_PARTNER', { keyword: searchKeyword }, 'Danh_sach_doi_tac.xlsx');
   };
 
   const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -422,12 +382,109 @@ export default function PartnerList() {
 
       {/*Header */}
       <div className={styles.header}>
-        <div className={styles.actions}>
-          {/* SEARCH  */}
+        <div className={styles.actions} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', width: '100%' }}>
+          
+          <Button variant='primary' onClick={handleOpenCreateModal}>
+            <Plus size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+            Thêm mới
+          </Button>
+
+          {(() => {
+            const statusVal = String(selectedPartner?.status || '').trim().toUpperCase();
+            const isPending = selectedPartner && ['PENDING', 'PENDING_APPROVAL', 'CHỜ DUYỆT', 'CHO_DUYET', 'WAIT_APPROVE', 'WAITING', 'PENDING_DELETE'].includes(statusVal);
+            const isActive = selectedPartner && ['ACTIVE', 'ĐÃ DUYỆT', 'DA_DUYET', 'APPROVED'].includes(statusVal);
+
+            return (
+              <>
+                <Button 
+                  variant='outline' 
+                  disabled={!selectedPartner}
+                  style={{ borderColor: selectedPartner ? '#3b82f6' : '#e5e7eb', color: selectedPartner ? '#3b82f6' : '#9ca3af', padding: '4px 12px' }}
+                  onClick={() => {
+                    if(!selectedPartner) return;
+                    setEditPartnerId(selectedPartner.id);
+                    setIsOpenModal(true);
+                  }}>
+                  <Pen size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+                  Sửa
+                </Button>
+
+                <Button 
+                  variant='outline' 
+                  disabled={!isActive}
+                  style={{ borderColor: isActive ? '#ef4444' : '#e5e7eb', color: isActive ? '#ef4444' : '#9ca3af', padding: '4px 12px' }}
+                  onClick={() => {
+                    if(!isActive || !selectedPartner) return;
+                    handleDelete(selectedPartner.id);
+                  }}>
+                  <Trash2 size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+                  Xóa
+                </Button>
+
+                <Button 
+                  variant='outline' 
+                  disabled={!isPending || !canApprove}
+                  title={!canApprove ? "Bạn không có quyền phê duyệt" : ""}
+                  style={{ borderColor: (isPending && canApprove) ? '#22c55e' : '#e5e7eb', color: (isPending && canApprove) ? '#22c55e' : '#9ca3af', padding: '4px 12px' }}
+                  onClick={() => {
+                    if(!isPending || !selectedPartner) return;
+                    if(!canApprove) {
+                      notifyWarning("Cảnh báo", "Bạn không có quyền phê duyệt đối tác!");
+                      return;
+                    }
+                    setApprovalPartner(selectedPartner);
+                    setIsApprovalModalOpen(true);
+                  }}>
+                  <Check size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+                  Phê duyệt
+                </Button>
+
+                <Button 
+                  variant='outline' 
+                  disabled={!selectedPartner}
+                  style={{ borderColor: selectedPartner ? '#60a5fa' : '#e5e7eb', color: selectedPartner ? '#60a5fa' : '#9ca3af', padding: '4px 12px' }}
+                  onClick={() => {
+                    if(!selectedPartner) return;
+                    handleViewPartner(selectedPartner);
+                  }}>
+                  <FileText size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+                  Chi tiết
+                </Button>
+                
+                <Button 
+                  variant='outline' 
+                  disabled={!selectedPartner}
+                  style={{ borderColor: selectedPartner ? '#1e3a8a' : '#e5e7eb', color: selectedPartner ? '#1e3a8a' : '#9ca3af', padding: '4px 12px' }}
+                  onClick={() => {
+                    if(!selectedPartner) return;
+                    notifyInfo('Thông báo', 'Chức năng lịch sử thay đổi đang được phát triển');
+                  }}>
+                  <Clock size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+                  Lịch sử thay đổi
+                </Button>
+              </>
+            );
+          })()}
+
+          <Button 
+            variant='outline' 
+            disabled={isExporting}
+            style={{ 
+              borderColor: isExporting ? '#9ca3af' : '#22c55e', 
+              color: isExporting ? '#9ca3af' : '#22c55e', 
+              padding: '4px 12px' 
+            }}
+            onClick={handleExportExcel}>
+            <FileSpreadsheet size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
+            {isExporting ? 'Đang xuất file trong nền...' : 'Xuất Excel'}
+          </Button>
+          
+          <div style={{ flex: 1 }}></div>
+
           <div className={styles.searchWrapper}>
             <Input
               type="text"
-              placeholder="Tìm kiếm theo mã, tên KH,..."
+              placeholder="Tìm kiếm..."
               value={searchKeyword}
               onChange={handleSearch}
             />
@@ -437,52 +494,18 @@ export default function PartnerList() {
               </button>
             )}
           </div>
-
-          <Button variant="primary" onClick={fetchPartners}>
-            <RefreshCw size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
-            Làm mới
-          </Button>
-          <Button variant='primary' onClick={handleOpenCreateModal}>
-            <Plus size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
-            Thêm mới
-          </Button>
-          <Button variant='primary' onClick={handleExportExcel}>
-            <FileSpreadsheet size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
-            Xuất Excel
-          </Button>
-
-          <Button variant='primary' disabled={!selectedPartner}
-          onClick={() => {
-            if(!selectedPartner) return;
-            handleViewPartner(selectedPartner);
-          }}>
-            <Eye size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
-            Xem
-          </Button>
-
-          <Button variant='primary' disabled={!selectedPartner}
-            onClick={() => {
-              if(!selectedPartner) return;
-            }}
-          >
-            <Trash2 size={14} style={{ marginRight: 6, display: 'inline', verticalAlign: 'text-bottom' }} />
-            Xóa
-          </Button>
         </div>
       </div>
       
       {/*Table */}
-      <div className={styles.tableContainer}>
-        <Table
-          columns={columns}
-          data={currentData}
-          rowKey="id"
-          isLoading={loading}
-          // onRowClick={(partners) => {setSelectedPartner(partners), handleRowClick}}
-          onRowClick={handleRowClick}
-          selectedRowkey={selectedRowId}
-        />
-      </div>
+      <Table
+        columns={columns}
+        data={currentData}
+        rowKey="id"
+        isLoading={loading}
+        onRowClick={handleRowClick}
+        selectedRowkey={selectedRowId}
+      />
       
       {/*Modal */}
       {isOpenModal && (
@@ -495,23 +518,29 @@ export default function PartnerList() {
       )}
 
       {isViewModalOpen && viewingPartner && (
-        <Modal
-          isOpen={isViewModalOpen}
-          onClose={handleCloseViewModal}
-          title={
-            <>
-              <Eye size={22} color="var(--primary)" /> Chi tiết đối tác
-            </>
-          }
-          size="xl"
-        >
-          <ViewPartner
-            partner={viewingPartner}
-            partnerId={viewingPartner.id}
-            getStatusClass={getStatusClass}
-            onClose={handleCloseViewModal}
+          <PartnerFormModal
+              isOpen={isViewModalOpen}
+              onClose={handleCloseViewModal}
+              partnerId={viewingPartner.id}
+              onSuccess={fetchPartners}
+              isView={true}
           />
-        </Modal>
+      )}
+
+      {isApprovalModalOpen && approvalPartner && (
+          <PartnerApprovalModal
+              isOpen={isApprovalModalOpen}
+              partner={approvalPartner}
+              onClose={() => {
+                  setIsApprovalModalOpen(false);
+                  setApprovalPartner(null);
+              }}
+              onSuccess={() => {
+                  setSelectedPartner(null);
+                  setSelectedRowId(null);
+                  fetchPartners();
+              }}
+          />
       )}
 
       {/* PHÂN TRANG */}
@@ -556,71 +585,6 @@ export default function PartnerList() {
             </button>
           </div>
         </div>
-      )}
-
-      {/*Chi tiet */}
-      {selectedPartner && (
-      <div className={styles.partnerDetail}>
-        <div className={styles.detailGrid}>
-          {/* CỘT TRÁI - Thông tin đối tác */}
-          <div className={styles.detailColumn}>
-            <div className={styles.detailHeader}>
-              <h3>THÔNG TIN CHI TIẾT ĐỐI TÁC</h3>
-              <button
-                type="button"
-                onClick={handleCloseDetail}
-                className={styles.closeDetail}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className={styles.detailGrid3Col}>
-              <Input label="Mã KH" value={selectedPartner.cusId || ""} readOnly />
-              <Input label="Mã đơn vị GD" value={selectedPartner.branchCusId || ""} readOnly />
-              <Input label="Tên KH" value={selectedPartner.cusName || ""} readOnly />
-              <Input label="Số ĐKKD/CCCD" value={selectedPartner.idCode || ""} readOnly />
-              <Input label="Ngày cấp lần đầu" value={selectedPartner.fistIssueDate || ""} readOnly />
-              <Input label="Ngày cấp cuối" value={selectedPartner.lastIssueDate || ""} readOnly />
-              <Input label="Nơi cấp" value={selectedPartner.issueBy || ""} readOnly />
-              <Input label="Giấy phép hoạt động" value={selectedPartner.opLiscenseNo || ""} readOnly />
-              <Input label="Ngày cấp giấy phép" value={selectedPartner.opIssueDate || ""} readOnly />
-              <Input label="Điện thoại" value={selectedPartner.mobile || ""} readOnly />
-              <Input label="Email" value={selectedPartner.email || ""} readOnly />
-              <Input label="Website" value={selectedPartner.website || ""} readOnly />
-              <Input label="Phân loại KH" value={selectedPartner.cusType || ""} readOnly />
-              <Input label="Loại hình kinh doanh" value={selectedPartner.businessType || ""} readOnly />
-              <Input label="NĐT chuyên nghiệp" value={selectedPartner.professionalInvestor ? "Có" : "Không"} readOnly />
-              <Input label="Ngày bắt đầu NĐT CN" value={selectedPartner.professionalStartDate || ""} readOnly />
-              <Input label="Ngày kết thúc NĐT CN" value={selectedPartner.professionalEndDate || ""} readOnly />
-              
-              <div className={styles.formGroupReadOnly}>
-                 <label>Trạng thái</label>
-                 <div className={`${styles.statusText} ${getStatusClass(selectedPartner.status)}`}>
-                    {selectedPartner.status ? (STATUS_MAP[selectedPartner.status as keyof typeof STATUS_MAP] || selectedPartner.status) : "-"}
-                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* CỘT PHẢI - Thông tin quản lý */}
-          <div className={styles.detailColumn}>
-            <div className={styles.detailSectionTitle}>
-              <h3 style={{fontSize:'var(--text-md)', margin:0, color:'var(--primary-color)'}}>THÔNG TIN QUẢN LÝ</h3>
-            </div>
-            <div className={styles.managementGrid}>
-               <Input label="User thực hiện" value={selectedPartner.updatedBy || ""} readOnly />
-               <Input label="Ngày chỉnh sửa" value={selectedPartner.lastUpdated || ""} readOnly />
-               <Input label="User duyệt" value={selectedPartner.approvedBy || "N/A"} readOnly />
-               <Input label="Thời gian duyệt" value={selectedPartner.approvedAt ? selectedPartner.approvedAt.substring(0, 19).replace('T', ' ') : "N/A"} readOnly />
-               <div className={styles.formGroupReadOnly}>
-                  <label>Ghi chú</label>
-                  <textarea readOnly value="Hồ sơ đã được duyệt." className={styles.readOnlyTextarea} />
-               </div>
-            </div>
-          </div>
-        </div>
-      </div>
       )}
     </div>
   );

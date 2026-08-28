@@ -12,18 +12,12 @@ import { PartnersItem } from "@/types/funding.types";
 import { useNotification } from "@/hooks/useNotification";
 import SignatureTab from "../../component/SignatureTab";
 import AssetTab from "../../component/AssetTab";
-import CrelimitTab from "../../component/CrelimitTab";
+import ContractTab from "../../component/ContractTab";
 import CustommerTypeTab from "../../component/CustommerTypeTab";
 import AuthorizationTab from "../../component/AuthorizationTab";
 import Button from "@/components/shared/Button/Button";
 
-const STATUS_MAP: Record<string, string> = {
-    ACTIVE: 'Đã duyệt',
-    APPROVED: 'Đã duyệt',
-    PENDING: 'Chờ duyệt',
-    PENDING_APPROVAL: 'Chờ duyệt',
-    INACTIVE: 'Ngừng hoạt động'
-};
+import { getStatusDisplay } from '@/constants/status';
 
 export default function PartnerView() {
     const params = useParams();
@@ -35,14 +29,10 @@ export default function PartnerView() {
     const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'custommertype' | 'asset' | 'limit'>('signature');
     const { notifyError } = useNotification();
 
-    // getStatusClass 
-    const STATUS_CLASS = {
-        ACTIVE: styles.active,
-        PENDING: styles.pending,
-        INACTIVE: styles.inactive,
+    const getStatusClass = (status: string) => {
+        const { className } = getStatusDisplay(status);
+        return styles[className as keyof typeof styles] || className;
     };
-
-    const getStatusClass = (status: string) => STATUS_CLASS[status as keyof typeof STATUS_CLASS] ?? "";
 
     useEffect(() => {
         const fetchPartner = async() => {
@@ -147,22 +137,18 @@ export default function PartnerView() {
                     <div className={styles.value}>{partner.businessType}</div>
                 </div>
                 <div className={styles.row}>
-                    <div className={styles.label}>Nhà đầu tư chuyên nghiệp</div>
-                    <div className={styles.value}>{partner.professionalInvestor ? "Có" : "Không"}</div>
+                    <div className={styles.label}>Mã TVLK (VSDC Code)</div>
+                    <div className={styles.value}>{partner.depositoryMemberCode || "-"}</div>
                 </div>
                 <div className={styles.row}>
-                    <div className={styles.label}>Ngày bắt đầu NĐT chuyên nghiệp</div>
-                    <div className={styles.value}>{partner.professionalStartDate}</div>
-                </div>
-                <div className={styles.row}>
-                    <div className={styles.label}>Ngày kết thúc NĐT chuyên nghiệp</div>
-                    <div className={styles.value}>{partner.professionalEndDate}</div>
+                    <div className={styles.label}>Nơi mở</div>
+                    <div className={styles.value}>{partner.tradingGateway || "-"}</div>
                 </div>
                 <div className={styles.row}>
                     <div className={styles.label}>Trạng thái</div>
                     <div className={styles.value}>
                         <span className={`${styles.status} ${getStatusClass(partner.status)}`}>
-                            {partner.status ? (STATUS_MAP[partner.status] || partner.status) : "-"}
+                            {partner.status ? (getStatusDisplay(partner.status).label) : "-"}
                         </span>
                     </div>
                 </div>
@@ -207,7 +193,7 @@ export default function PartnerView() {
                 <Button variant="outline" onClick={() => window.print()}>
                     <Printer size={16} style={{ marginRight: 4 }} /> In HĐ
                 </Button>
-                <Button variant="primary" onClick={() => router.back()} className={styles.backBtn}>
+                <Button variant="primary" onClick={() => router.back()}>
                     Đóng
                 </Button>
             </div>

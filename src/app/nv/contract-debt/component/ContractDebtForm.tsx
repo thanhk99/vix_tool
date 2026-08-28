@@ -4,17 +4,25 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/shared/Button/Button';
 import Input from '@/components/shared/Input/Input';
+import CurrencyInput from '@/components/shared/Input/CurrencyInput';
 import Select from '@/components/shared/Select/Select';
 import { useAuthStore } from '@/stores/auth.store';
 import { ContractDebtFormData } from '@/types/contract-debt';
 import styles from './ContractDebtForm.module.css';
 import apiClient from '@/lib/api/client';
 import { useNotification } from '@/hooks/useNotification';
+import { getStatusDisplay } from '@/constants/status';
 
-export default function ContractDebtForm() {
+interface ContractDebtFormProps {
+  id?: string;
+  mode?: 'create' | 'edit' | 'view';
+}
+
+export default function ContractDebtForm({ id, mode = 'create' }: ContractDebtFormProps) {
   const router = useRouter();
   const { userId } = useAuthStore();
-  const { notifyError } = useNotification();
+  const { notifyError, notifySuccess } = useNotification();
+  const [isSaving, setIsSaving] = useState(false);
   
   const [formData, setFormData] = useState<ContractDebtFormData>({
     cusId: '',
@@ -33,10 +41,12 @@ export default function ContractDebtForm() {
     term: 0,
     currency: 'VND',
     purpose: '',
-    intTerm: '',
-    prinTerm: '',
+    intTerm: 'Hàng tháng',
+    prinTerm: 'Hàng tháng',
     status: 'Pending',
     remainLimit: 0,
+    note: '',
+    prepaymentNote: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -44,6 +54,31 @@ export default function ContractDebtForm() {
   // Dynamic Data
   const [partners, setPartners] = useState<{value: string, label: string, originalId: string}[]>([]);
   const [creditLimits, setCreditLimits] = useState<any[]>([]);
+
+  // Fetch existing data if in edit/view mode
+  useEffect(() => {
+    if (id) {
+      const fetchKunn = async () => {
+        try {
+          const res: any = await apiClient.get(`/v1/capital-source/kunns/${id}`);
+          let data = res?.data?.data || res?.data || res;
+          
+          const formatDate = (dateStr: string) => dateStr ? dateStr.split('T')[0] : '';
+          
+          setFormData({
+            ...data,
+            cusId: data.partnerId || data.cusId || '',
+            lnContactDate: formatDate(data.lnContactDate),
+            lnDate: formatDate(data.lnDate),
+            settDate: formatDate(data.settDate),
+          });
+        } catch (e) {
+          notifyError('Lỗi', 'Không thể tải thông tin Khế ước');
+        }
+      };
+      fetchKunn();
+    }
+  }, [id]);
 
   // Fetch partners on mount
   useEffect(() => {
@@ -58,11 +93,13 @@ export default function ContractDebtForm() {
         else if (res?.data?.data) content = res.data.data;
         else content = Array.isArray(res) ? res : (res?.data || []);
 
-        const partnerOptions = content.map((p: any) => ({
-          value: p.id || p.cusId,
-          label: p.cusId ? `${p.cusId} - ${p.cusName}` : p.cusName || p.id,
-          originalId: p.cusId
-        }));
+        const partnerOptions = content
+          .filter((p: any) => ['ACTIVE', 'APPROVED', 'ĐÃ DUYỆT', 'DA_DUYET'].includes(String(p.status).toUpperCase()))
+          .map((p: any) => ({
+            value: p.id || p.cusId,
+            label: p.cusId ? `${p.cusId} - ${p.cusName}` : p.cusName || p.id,
+            originalId: p.cusId
+          }));
         
         console.log('Mapped partner options:', partnerOptions);
         setPartners(partnerOptions);
@@ -83,7 +120,7 @@ export default function ContractDebtForm() {
       }
       try {
         // formData.cusId is storing the internal ID based on how we mapped options.value
-        const res: any = await apiClient.get(`/v1/capital-source/partners/${formData.cusId}/credit-limits`);
+        const res: any = await apiClient.get(`/v1/capital-source/credit-limits?partnerId=${formData.cusId}&size=100`);
         console.log('API Limits Response:', res);
         
         let limitsData: any = [];
@@ -98,6 +135,12 @@ export default function ContractDebtForm() {
             limitsData = payload.data && Array.isArray(payload.data) ? payload.data : [payload];
         }
         
+        // Filter only approved limits or limits without status
+        limitsData = limitsData.filter((l: any) => {
+          if (!l.status) return true;
+          return ['ACTIVE', 'APPROVED', 'ĐÃ DUYỆT', 'DA_DUYET'].includes(String(l.status).toUpperCase());
+        });
+
         console.log('Mapped limits data:', limitsData);
         setCreditLimits(limitsData);
       } catch (err) {
@@ -110,31 +153,58 @@ export default function ContractDebtForm() {
   }, [formData.cusId]);
 
   const contractOptions = useMemo(() => {
-    // Unique poolType (Số HĐ tín dụng) from credit limits
-    const types = Array.from(new Set(creditLimits.map(l => l?.poolType || l?.contactNo).filter(Boolean)));
+    // Unique contractNo (Số HĐ tín dụng) from credit limits
+    const types = Array.from(new Set(creditLimits.map(l => l?.contractNo).filter(Boolean)));
     return types.map(t => ({ value: String(t), label: String(t) }));
   }, [creditLimits]);
 
   const limitOptions = useMemo(() => {
-    // Filter limits by selected contactNo (poolType) if any
+    // Filter limits by selected contractNo if any
     const filtered = formData.contactNo 
-      ? creditLimits.filter(l => (l?.poolType || l?.contactNo) === formData.contactNo)
+      ? creditLimits.filter(l => l?.contractNo === formData.contactNo)
       : creditLimits;
       
-    return filtered.map(l => {
-      const val = l?.limitId || l?.id || '';
-      const lbl = l?.limitId || l?.poolName || val;
+    const options = filtered.map((l, index) => {
+      const val = l?.id || l?.limitId || `unknown-${index}`;
+      const lbl = l?.limitId || l?.poolName || l?.id || 'Không xác định';
       return {
         value: String(val),
         label: String(lbl),
         remainLimit: l?.remainPool || l?.remainLimit || 0,
+        startDate: l?.startDate,
+        endDate: l?.endDate,
       };
-    }).filter(o => o.value);
+    });
+    
+    // Deduplicate by value
+    const uniqueOptionsMap = new Map();
+    options.forEach(o => {
+      if (!uniqueOptionsMap.has(o.value)) {
+        uniqueOptionsMap.set(o.value, o);
+      }
+    });
+    
+    return Array.from(uniqueOptionsMap.values());
   }, [creditLimits, formData.contactNo]);
 
   const selectedLimit = useMemo(() => {
     return limitOptions.find(l => l.value === formData.limitId);
   }, [formData.limitId, limitOptions]);
+
+  
+  // Auto-calculate term in days
+  React.useEffect(() => {
+    if (formData.lnDate && formData.settDate) {
+      const diffTime = new Date(formData.settDate).getTime() - new Date(formData.lnDate).getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && formData.term !== diffDays) {
+        setFormData(prev => ({ ...prev, term: diffDays }));
+        if (errors['term']) {
+          setErrors(prev => ({ ...prev, term: '' }));
+        }
+      }
+    }
+  }, [formData.lnDate, formData.settDate]);
 
   // Update remainLimit when limit changes
   React.useEffect(() => {
@@ -144,10 +214,11 @@ export default function ContractDebtForm() {
   }, [selectedLimit]);
 
   const handleChange = (field: keyof ContractDebtFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: ContractDebtFormData) => ({ ...prev, [field]: value }));
     // Clear error
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+    const errorField = field as string;
+    if (errors[errorField]) {
+      setErrors((prev: Record<string, string>) => ({ ...prev, [errorField]: '' }));
     }
   };
 
@@ -161,6 +232,7 @@ export default function ContractDebtForm() {
     if (!formData.lnContactDate) newErrors.lnContactDate = 'Bắt buộc nhập';
     if (!formData.lnAmt) newErrors.lnAmt = 'Bắt buộc nhập';
     if (!formData.lnDate) newErrors.lnDate = 'Bắt buộc nhập';
+    if (!formData.settDate) newErrors.settDate = 'Bắt buộc nhập';
     if (!formData.contractIntRate) newErrors.contractIntRate = 'Bắt buộc nhập';
     if (!formData.actIntRate) newErrors.actIntRate = 'Bắt buộc nhập';
     if (!formData.term) newErrors.term = 'Bắt buộc nhập';
@@ -173,8 +245,17 @@ export default function ContractDebtForm() {
       newErrors.reason = 'Bắt buộc nhập lý do khi lãi suất chênh lệch';
     }
 
-    if (formData.remainLimit !== undefined && formData.lnAmt > formData.remainLimit) {
+    if (formData.remainLimit !== undefined && (formData.remainLimit !== undefined && formData.lnAmt > formData.remainLimit)) {
       newErrors.lnAmt = 'Số tiền giải ngân không được vượt quá hạn mức còn lại';
+    }
+
+    if (selectedLimit && formData.lnDate) {
+      if (selectedLimit.startDate && new Date(formData.lnDate) < new Date(selectedLimit.startDate)) {
+        newErrors.lnDate = 'Ngày giải ngân không được trước ngày bắt đầu hạn mức';
+      }
+      if (selectedLimit.endDate && new Date(formData.lnDate) > new Date(selectedLimit.endDate)) {
+        newErrors.lnDate = 'Ngày giải ngân không được sau ngày kết thúc hạn mức';
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -182,10 +263,56 @@ export default function ContractDebtForm() {
       return;
     }
 
-    // Mock save
-    console.log('Saved with createUser:', userId, formData);
-    alert('Lưu thành công!');
-    router.push('/nv/contract-debt');
+    const submitData = async () => {
+      try {
+        setIsSaving(true);
+        const payload = {
+          cusId: formData.cusId,
+          contactNo: formData.contactNo,
+          limitId: formData.limitId,
+          lnContactNo: formData.lnContactNo,
+          lnContactDate: formData.lnContactDate,
+          lnAmt: formData.lnAmt,
+          lnDate: formData.lnDate,
+          contractIntRate: formData.contractIntRate,
+          actIntRate: formData.actIntRate,
+          reason: formData.reason,
+          casaRate: formData.casaRate,
+          settDate: formData.settDate || null,
+          term: formData.term,
+          currency: formData.currency,
+          purpose: formData.purpose,
+          intTerm: formData.intTerm,
+          prinTerm: formData.prinTerm,
+          note: formData.note,
+          prepaymentNote: formData.prepaymentNote,
+        };
+
+        let res;
+        if (mode === 'edit' && id) {
+          res = await apiClient.put(`/v1/capital-source/kunns/${id}`, payload);
+        } else {
+          res = await apiClient.post('/v1/capital-source/kunns', payload);
+        }
+
+        const responseData = res?.data || res;
+        if (responseData && responseData.success === false) {
+          notifyError('Lỗi', responseData.message || 'Thao tác không thành công');
+          return;
+        }
+
+        notifySuccess('Thành công', mode === 'edit' ? 'Cập nhật hợp đồng vay (KUNN) thành công!' : 'Thêm mới hợp đồng vay (KUNN) thành công!');
+        router.push('/nv/contract-debt');
+      } catch (error: any) {
+        console.error('Lỗi khi lưu KUNN:', error);
+        const errorMsg = error?.message || error?.response?.data?.message || 'Có lỗi xảy ra khi lưu hợp đồng vay';
+        notifyError('Lỗi', errorMsg);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    submitData();
   };
 
   return (
@@ -193,9 +320,9 @@ export default function ContractDebtForm() {
       <div className={styles.header}>
         <div className={styles.title}>
           <span className={styles.backBtn} onClick={() => router.back()}>←</span> 
-          Thêm mới hợp đồng vay
+          {mode === 'view' ? 'Chi tiết hợp đồng vay' : mode === 'edit' ? 'Cập nhật hợp đồng vay' : 'Thêm mới hợp đồng vay'}
         </div>
-        <div className={styles.subtitle}>Nhập thông tin hợp đồng vay</div>
+        <div className={styles.subtitle}>{mode === 'view' ? 'Xem thông tin hợp đồng vay' : 'Nhập thông tin hợp đồng vay'}</div>
       </div>
 
       <div className={styles.section}>
@@ -203,7 +330,7 @@ export default function ContractDebtForm() {
         <div className={styles.grid4}>
           <div className={styles.field}>
             <span className={styles.label}>Mã đối tác <span className={styles.required}>*</span></span>
-            <Select 
+            <Select disabled={mode === 'view'} 
               options={partners} 
               value={formData.cusId} 
               onChange={(value) => handleChange('cusId', value)} 
@@ -213,7 +340,7 @@ export default function ContractDebtForm() {
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Số HĐ tín dụng <span className={styles.required}>*</span></span>
-            <Select 
+            <Select disabled={mode === 'view'} 
               options={contractOptions} 
               value={formData.contactNo} 
               onChange={(value) => handleChange('contactNo', value)} 
@@ -223,7 +350,7 @@ export default function ContractDebtForm() {
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Mã hạn mức <span className={styles.required}>*</span></span>
-            <Select 
+            <Select disabled={mode === 'view'} 
               options={limitOptions} 
               value={formData.limitId} 
               onChange={(value) => handleChange('limitId', value)} 
@@ -233,11 +360,19 @@ export default function ContractDebtForm() {
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Hạn mức còn lại</span>
-            <Input disabled value={formData.remainLimit?.toLocaleString() || '0'} />
+            <CurrencyInput disabled={mode === 'view' || true} value={formData.remainLimit} />
+          </div>
+          <div className={styles.field}>
+            <span className={styles.label}>Ngày BĐ hạn mức</span>
+            <Input disabled={mode === 'view' || true} value={selectedLimit?.startDate ? new Date(selectedLimit.startDate).toLocaleDateString('vi-VN') : '-'} />
+          </div>
+          <div className={styles.field}>
+            <span className={styles.label}>Ngày KT hạn mức</span>
+            <Input disabled={mode === 'view' || true} value={selectedLimit?.endDate ? new Date(selectedLimit.endDate).toLocaleDateString('vi-VN') : '-'} />
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Số HĐ khế ước <span className={styles.required}>*</span></span>
-            <Input 
+            <Input disabled={mode === 'view'} 
               value={formData.lnContactNo} 
               onChange={e => handleChange('lnContactNo', e.target.value)} 
             />
@@ -245,7 +380,7 @@ export default function ContractDebtForm() {
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Ngày khế ước <span className={styles.required}>*</span></span>
-            <Input 
+            <Input disabled={mode === 'view'} 
               type="date" 
               value={formData.lnContactDate} 
               onChange={e => handleChange('lnContactDate', e.target.value)} 
@@ -253,8 +388,19 @@ export default function ContractDebtForm() {
             {errors.lnContactDate && <span className={styles.requiredNote}>{errors.lnContactDate}</span>}
           </div>
           <div className={styles.field}>
+            <span className={styles.label}>Số tiền giải ngân <span className={styles.required}>*</span></span>
+            <CurrencyInput disabled={mode === 'view'} 
+              value={formData.lnAmt || ''} 
+              onChangeValue={val => handleChange('lnAmt', val)} 
+            />
+            {errors.lnAmt && <span className={styles.requiredNote}>{errors.lnAmt}</span>}
+            {!errors.lnAmt && formData.limitId && (formData.remainLimit !== undefined && formData.lnAmt > formData.remainLimit) && (
+              <span className={styles.requiredNote} style={{ display: 'block', marginTop: '4px' }}>Số tiền giải ngân đang vượt quá hạn mức còn lại!</span>
+            )}
+          </div>
+          <div className={styles.field}>
             <span className={styles.label}>Ngày giải ngân <span className={styles.required}>*</span></span>
-            <Input 
+            <Input disabled={mode === 'view'} 
               type="date" 
               value={formData.lnDate} 
               onChange={e => handleChange('lnDate', e.target.value)} 
@@ -262,34 +408,36 @@ export default function ContractDebtForm() {
             {errors.lnDate && <span className={styles.requiredNote}>{errors.lnDate}</span>}
           </div>
           <div className={styles.field}>
-            <span className={styles.label}>Số tiền giải ngân <span className={styles.required}>*</span></span>
-            <Input 
-              type="number" 
-              value={formData.lnAmt || ''} 
-              onChange={e => handleChange('lnAmt', Number(e.target.value))} 
+            <span className={styles.label}>Ngày tất toán <span className={styles.required}>*</span></span>
+            <Input disabled={mode === 'view'} 
+              type="date" 
+              value={formData.settDate} 
+              onChange={e => handleChange('settDate', e.target.value)} 
             />
-            {errors.lnAmt && <span className={styles.requiredNote}>{errors.lnAmt}</span>}
+            {errors.settDate && <span className={styles.requiredNote}>{errors.settDate}</span>}
           </div>
+          
+          
           <div className={styles.field}>
             <span className={styles.label}>Đơn vị tiền tệ <span className={styles.required}>*</span></span>
-            <Select 
+            <Select disabled={mode === 'view'} 
               options={[{value:'VND', label:'VND'}, {value:'USD', label:'USD'}]} 
               value={formData.currency} 
               onChange={(value) => handleChange('currency', value)} 
             />
           </div>
           <div className={styles.field}>
-            <span className={styles.label}>Kỳ hạn (tháng) <span className={styles.required}>*</span></span>
-            <Input 
+            <span className={styles.label}>Kỳ hạn (ngày) <span className={styles.required}>*</span></span>
+            <Input disabled={true} 
               type="number" 
-              value={formData.term || ''} 
+              value={formData.term || 0} 
               onChange={e => handleChange('term', Number(e.target.value))} 
             />
             {errors.term && <span className={styles.requiredNote}>{errors.term}</span>}
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Mục đích <span className={styles.required}>*</span></span>
-            <Input 
+            <Input disabled={mode === 'view'} 
               value={formData.purpose} 
               onChange={e => handleChange('purpose', e.target.value)} 
             />
@@ -297,7 +445,7 @@ export default function ContractDebtForm() {
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Kỳ trả lãi <span className={styles.required}>*</span></span>
-            <Select 
+            <Select disabled={mode === 'view'} 
               options={[
                 {value:'Hàng tháng', label:'Hàng tháng'}, 
                 {value:'Hàng quý', label:'Hàng quý'}, 
@@ -310,7 +458,7 @@ export default function ContractDebtForm() {
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Kỳ trả gốc <span className={styles.required}>*</span></span>
-            <Select 
+            <Select disabled={mode === 'view'} 
               options={[
                 {value:'Hàng tháng', label:'Hàng tháng'}, 
                 {value:'Hàng quý', label:'Hàng quý'}, 
@@ -321,10 +469,7 @@ export default function ContractDebtForm() {
             />
             {errors.prinTerm && <span className={styles.requiredNote}>{errors.prinTerm}</span>}
           </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Trạng thái</span>
-            <Input disabled value={formData.status} />
-          </div>
+
         </div>
       </div>
 
@@ -333,7 +478,7 @@ export default function ContractDebtForm() {
         <div className={styles.grid4}>
           <div className={styles.field}>
             <span className={styles.label}>Lãi HĐ (%) <span className={styles.required}>*</span></span>
-            <Input 
+            <Input disabled={mode === 'view'} 
               type="number" 
               value={formData.contractIntRate || ''} 
               onChange={e => handleChange('contractIntRate', Number(e.target.value))} 
@@ -342,7 +487,7 @@ export default function ContractDebtForm() {
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Lãi thực tế (%) <span className={styles.required}>*</span></span>
-            <Input 
+            <Input disabled={mode === 'view'} 
               type="number" 
               value={formData.actIntRate || ''} 
               onChange={e => handleChange('actIntRate', Number(e.target.value))} 
@@ -351,7 +496,7 @@ export default function ContractDebtForm() {
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Lý do chênh lệch {formData.contractIntRate !== formData.actIntRate && <span className={styles.required}>*</span>}</span>
-            <Input 
+            <Input disabled={mode === 'view'} 
               value={formData.reason} 
               onChange={e => handleChange('reason', e.target.value)} 
             />
@@ -359,7 +504,7 @@ export default function ContractDebtForm() {
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Tỷ lệ duy trì CASA (%)</span>
-            <Input 
+            <Input disabled={mode === 'view'} 
               type="number" 
               value={formData.casaRate || ''} 
               onChange={e => handleChange('casaRate', Number(e.target.value))} 
@@ -369,22 +514,20 @@ export default function ContractDebtForm() {
       </div>
 
       <div className={styles.section}>
-        <div className={styles.sectionTitle}>3. Thông tin thanh toán</div>
-        <div className={styles.grid4}>
+        <div className={styles.sectionTitle}>3. Thông tin bổ sung</div>
+        <div className={styles.grid}>
           <div className={styles.field}>
-            <span className={styles.label}>Số tiền đáo hạn</span>
-            <Input 
-              type="number" 
-              value={formData.maturityAmt || ''} 
-              onChange={e => handleChange('maturityAmt', Number(e.target.value))} 
+            <span className={styles.label}>Trả nợ trước hạn</span>
+            <Input disabled={mode === 'view'} 
+              value={formData.prepaymentNote || ''} 
+              onChange={e => handleChange('prepaymentNote', e.target.value)} 
             />
           </div>
-          <div className={styles.field}>
-            <span className={styles.label}>Ngày tất toán</span>
-            <Input 
-              type="date" 
-              value={formData.settDate} 
-              onChange={e => handleChange('settDate', e.target.value)} 
+          <div className={styles.field} style={{ gridColumn: '1 / -1' }}>
+            <span className={styles.label}>Ghi chú</span>
+            <Input disabled={mode === 'view'} 
+              value={formData.note || ''} 
+              onChange={e => handleChange('note', e.target.value)} 
             />
           </div>
         </div>
@@ -393,8 +536,15 @@ export default function ContractDebtForm() {
       <div className={styles.footer}>
         <span className={styles.requiredNote}>* Thông tin bắt buộc</span>
         <div className={styles.actions}>
-          <Button variant="outline" onClick={() => router.back()}>Hủy</Button>
-          <Button variant="primary" onClick={handleSave}>Lưu</Button>
+          {mode !== 'view' && (
+            <>
+              <Button variant="outline" onClick={() => router.back()}>Hủy</Button>
+              <Button variant="primary" onClick={handleSave} disabled={isSaving} isLoading={isSaving}>Lưu</Button>
+            </>
+          )}
+          {mode === 'view' && (
+            <Button variant="outline" onClick={() => router.back()}>Đóng</Button>
+          )}
         </div>
       </div>
     </div>

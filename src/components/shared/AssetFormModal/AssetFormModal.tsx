@@ -6,8 +6,9 @@ import apiClient from "@/lib/api/client";
 import { AssetFormData } from "@/types/funding.types";
 import styles from "./AssetFormModal.module.css";
 import Button from "@/components/shared/Button/Button";
-import Modal from "@/components/shared/Modal/Modal";
 import Input from "@/components/shared/Input/Input";
+import CurrencyInput from "@/components/shared/Input/CurrencyInput";
+import Modal from "@/components/shared/Modal/Modal";
 import Select, { SelectOption } from "@/components/shared/Select/Select";
 
 interface AssetFormModalProps {
@@ -21,15 +22,22 @@ interface AssetFormModalProps {
 const initialFormData: AssetFormData = {
     assetId: "",
     assetType: "",
+    symbol: "",
+    currency: "VND",
     issuer: "",
     issuerCode: "",
+    totalQuantity: "",
     parValue: "",
+    marketPrice: "",
+    haircutRate: "",
     issueDate: "",
     maturityDate: "",
     callDate: "",
     couponType: "",
     couponRate: "",
     interestPayTerm: "",
+    note: "",
+    status: "AVAILABLE"
 };
 
 const ASSET_TYPE_OPTIONS: SelectOption[] = [
@@ -204,13 +212,11 @@ export default function AssetFormModal({ isOpen, onClose, partnerId, limitId, on
                         fullWidth
                     />
 
-                    <Input
+                    <CurrencyInput
                         label="Mệnh giá"
-                        type="number"
                         value={formData.parValue}
-                        onChange={(e) => handleChange("parValue", e.target.value)}
+                        onChangeValue={(val) => handleChange("parValue", String(val))}
                         placeholder="Nhập mệnh giá"
-                        min="0"
                         disabled={saving}
                         fullWidth
                     />

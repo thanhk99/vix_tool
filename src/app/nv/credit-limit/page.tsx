@@ -1,4 +1,4 @@
-import CreditLimitTable from '../../../components/credit-limit/CreditLimitTable';
+import CreditLimitTable from './component/CreditLimitTable';
 
 export default function CreditLimitPage() {
   return <CreditLimitTable />;

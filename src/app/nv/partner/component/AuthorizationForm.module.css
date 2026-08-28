@@ -1,5 +1,112 @@
-.form {
+.formContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1d4ed8;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    letter-spacing: 0.5px;
+}
+
+.sectionBar {
+    width: 3.5px;
+    height: 15px;
+    background-color: #2563eb;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.grid2 {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px 20px;
+    gap: 14px;
+}
+
+.grid1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+.fieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.sourceBadge {
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+    margin-left: 4px;
+}
+
+.buttonRow {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.btnCancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnCancel:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.btnSave {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border: 1px solid #2563eb;
+    border-radius: 6px;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnSave:hover {
+    background-color: #1d4ed8;
 }

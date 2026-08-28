@@ -11,11 +11,12 @@ import AssetFormModal from "@/components/shared/AssetFormModal/AssetFormModal";
 
 interface AssetTabProps {
     partnerId: string;
+isView?: boolean;
 }
 
 
 
-export default function AssetTab({ partnerId }: AssetTabProps) {
+export default function AssetTab({ partnerId, isView }: AssetTabProps) {
     const [assets, setAssets] = useState<AssetItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
@@ -163,17 +164,19 @@ export default function AssetTab({ partnerId }: AssetTabProps) {
 
     return (
         <div className={styles.container}>
-            <div className={styles.title}>
-                <h2>THÔNG TIN TÀI SẢN ĐẢM BẢO</h2>
-            </div>
             <div className={styles.header}>
+                <h2 className={styles.title}>
+                    DANH SÁCH TÀI SẢN
+                </h2>
                 <Button
-                    type="button"
                     variant="primary"
-                    onClick={handleOpenCreate}
-                >Thêm mới</Button>
+                    onClick={
+                        handleOpenCreate
+                    }
+                >
+                    Thêm mới
+                </Button>
             </div>
-            {/*Table*/}
             <div className={styles.table}>
                 <Table
                     columns={columns}

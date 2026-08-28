@@ -56,6 +56,24 @@ export default function Header() {
         if (pathname.startsWith('/nv/partner')) {
             return 'QUẢN LÝ ĐỐI TÁC';
         }
+        if (pathname.startsWith('/nv/credit-limit')) {
+            return 'QUẢN LÝ HẠN MỨC TÍN DỤNG';
+        }
+        if (pathname.startsWith('/nv/asset-transaction')) {
+            return 'QUẢN LÝ TÀI SẢN ĐẢM BẢO';
+        }
+        if (pathname.startsWith('/nv/contract-debt')) {
+            return 'QUẢN LÝ KHẾ ƯỚC NHẬN NỢ';
+        }
+        if (pathname.startsWith('/nv/event-repayment')) {
+            return 'QUẢN LÝ SỰ KIỆN TRẢ NỢ';
+        }
+        if (pathname.startsWith('/nv/category-config')) {
+            return 'DANH MỤC VÀ CẤU HÌNH';
+        }
+        if (pathname.startsWith('/nv/history')) {
+            return 'LỊCH SỬ THAY ĐỔI';
+        }
         return 'HỆ THỐNG';
     };
 

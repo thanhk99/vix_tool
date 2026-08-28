@@ -198,3 +198,38 @@
     margin: 0;
 }
 
+
+.active {
+  background-color: #dcfce7;
+  color: #166534;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.pending {
+  background-color: #ffedd5;
+  color: #c2410c;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.rejected {
+  background-color: #fee2e2;
+  color: #ef4444;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.inactive {
+  background-color: #f1f5f9;
+  color: #475569;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.pendingDelete {
+  background-color: #ffe4e6;
+  color: #e11d48;
+  padding: 4px 8px;
+  border-radius: 12px;
+}

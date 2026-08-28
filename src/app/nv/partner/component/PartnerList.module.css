@@ -1,7 +1,7 @@
 .partnerList {
-  padding: var(--spacing-lg);
-  background-color: var(--color-surface);
-  border-radius: var(--radius);
+  padding: var(--space-4);
+  background-color: var(--surface);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
 
@@ -21,18 +21,18 @@
 .addPartnerForm {
   display: grid;
   grid-template-columns: 1fr auto auto auto;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
   align-items: end;
 }
 
 .input, .select {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background-color: var(--color-bg);
-  font-size: var(--font-size-base);
-  color: var(--color-text);
+  background-color: var(--background);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
 }
 
 .input:focus, .select:focus {
@@ -40,156 +40,6 @@
   border-color: var(--color-primary);
 }
 
-/* ============================================
-   Table Container
-   ============================================ */
-.tableContainer {
-    width: 100%;
-    overflow-x: auto;
-    background: var(--surface);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--surface);
-}
-
-.tableContainer table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--font-size-sm);
-    min-width: 1200px;
-    table-layout: fixed;
-}
-
-.tableContainer thead {
-    background: var(--border);
-}
-
-.tableContainer thead th {
-    padding: 10px 12px;
-    text-align: left;
-    font-weight: 600;
-    font-size: var(--font-size-xs);
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    border-bottom: 1px solid var(--border);
-    white-space: nowrap;
-    position: sticky;
-    top: 0;
-    background: #f8fafc;
-    z-index: 10;
-    line-height: 1.3;
-    min-height: 40px;
-}
-
-.tableContainer tbody tr {
-    transition: background-color 0.15s ease;
-    border-bottom: 1px solid var(--surface);
-}
-
-.tableContainer tbody tr:hover {
-    background: var(--surface);
-}
-
-.tableContainer tbody tr:last-child {
-    border-bottom: none;
-}
-
-.tableContainer tbody td {
-    padding: 8px 12px;
-    color: var(--text-primary);
-    vertical-align: middle;
-    max-width: 200px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Removed cell expand on hover as per request */
-
-/* ============================================
-   Cột STT
-   ============================================ */
-.tableContainer tbody td:first-child,
-.tableContainer thead th:first-child {
-    padding: 4px 6px;
-    text-align: center;
-    width: 40px;
-}
-
-/* ============================================
-   Cột Thao tác
-   ============================================ */
-.tableContainer tbody td:last-child,
-.tableContainer thead th:last-child {
-    padding: 4px 8px;
-    text-align: center;
-    width: 150px;
-    overflow: visible;
-}
-
-.tableContainer :global(td:last-child) {
-  position: sticky;
-  right: 0;
-  z-index: 5;
-  background-color: var(--surface);
-  min-width: 120px;
-}
-
-.tableContainer :global(th:last-child) {
-  position: sticky;
-  right: 0;
-  z-index: 5;
-  background-color: #f8fafc;
-  min-width: 120px;
-}
-
-.tableContainer :global(th:last-child) {
-  z-index: 15;
-}
-
-/* ============================================
-   Scrollbar
-   ============================================ */
-.tableContainer::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.tableContainer::-webkit-scrollbar-track {
-    background: var(--background);
-    border-radius: 4px;
-}
-
-.tableContainer::-webkit-scrollbar-thumb {
-    background: var(--background);
-    border-radius: 4px;
-}
-
-.tableContainer::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary);
-}
-
-/* ============================================
-   Loading State
-   ============================================ */
-.tableLoading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    color: #6b7280;
-    font-size: 14px;
-}
-
-/* ============================================
-   Empty State
-   ============================================ */
-.tableEmpty {
-    text-align: center;
-    padding: 40px 20px;
-    color: #6b7280;
-    font-size: 14px;
-}
 .status {
   padding: var(--space-1);
   border-radius: var(--radius-sm);
@@ -699,4 +549,10 @@
 /* Các field bên phải */
 .detailGrid > .detailColumn:last-child .detailItem {
   margin-bottom: var(--space-3);
+}
+.pendingDelete {
+  background-color: #ffe4e6;
+  color: #e11d48;
+  padding: 4px 8px;
+  border-radius: 12px;
 }

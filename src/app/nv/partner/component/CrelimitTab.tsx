@@ -8,12 +8,12 @@ import Button from "@/components/shared/Button/Button";
 import Input from "@/components/shared/Input/Input";
 import Select from "@/components/shared/Select/Select";
 import Modal from "@/components/shared/Modal/Modal";
+import { getStatusDisplay } from "@/constants/status";
 
 interface CrelimitTabProps {
-    partnerId: string
-}
-
-export default function CrelimitTab({partnerId}: CrelimitTabProps) {
+    partnerId: string;
+    isView?: boolean;
+}export default function CrelimitTab({partnerId, isView}: CrelimitTabProps) {
     const [creditLimits, setCreditLimits] = useState<CreditLimitItem[]>([]);
     const [loading, setLoading] = useState(false);
     const {notifyError, notifyWarning, notifySuccess} = useNotification();
@@ -43,7 +43,7 @@ export default function CrelimitTab({partnerId}: CrelimitTabProps) {
     const fetchCreditLimits = async() => {
         try {
             setLoading(true);
-            const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/credit-limits`);
+            const res = await apiClient.get(`/v1/capital-source/credit-limits?partnerId=${partnerId}&size=100`);
             const payload = res.data?.data || res.data;
             if (payload && payload.content !== undefined) {
                 setCreditLimits(payload.content || []);
@@ -292,22 +292,6 @@ export default function CrelimitTab({partnerId}: CrelimitTabProps) {
                 }
             }
 
-            if (value === "ACTIVE") {
-                return (
-                    <span className={styles.statusActive}>
-                        Active
-                    </span>
-                );
-            }
-
-            if (value === "PENDING") {
-                return (
-                    <span className={styles.statusPending}>
-                        Pending
-                    </span>
-                );
-            }
-
             if (value === "CLOSE") {
                 return (
                     <span className={styles.statusDuedate}>
@@ -316,9 +300,10 @@ export default function CrelimitTab({partnerId}: CrelimitTabProps) {
                 );
             }
 
+            const { label, className } = getStatusDisplay(value as string);
             return (
-                <span>
-                    {String(value || "-")}
+                <span className={styles[className] || styles.statusPending}>
+                    {label}
                 </span>
             );
         },
@@ -328,14 +313,16 @@ export default function CrelimitTab({partnerId}: CrelimitTabProps) {
     if(loading) return <div className={styles.loading}>Đang tải dữ liệu...</div>
     return (
         <div className={styles.container}>
-            <div className={styles.title}>
-                <h2>DANH SÁCH HẠN MỨC</h2>
-            </div>
             <div className={styles.header}>
+                <h2 className={styles.title}>
+                    DANH SÁCH HẠN MỨC
+                </h2>
                 <Button
-                    type="button"
+                    variant="primary"
                     onClick={() => setIsCreating(true)}
-                >Thêm mới</Button>
+                >
+                    Thêm mới
+                </Button>
             </div>
 
             <div className={styles.content}>

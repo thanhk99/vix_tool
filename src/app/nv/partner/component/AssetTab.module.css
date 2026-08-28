@@ -1,9 +1,15 @@
 .title {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin: 0;
 }
 
 .header {
-    margin-bottom: var(--space-1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2);
 }
 
 .assetForm {

@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Plus, Download, Edit2, Eye, RefreshCw, X, Filter, Trash2, FileBox, Clock, ChevronRight, ChevronDown, List, Check } from 'lucide-react';
-import { CreditLimit } from '../../types/credit-limit';
-import { LIMIT_TYPES } from '../../constants/credit-limit';
+import { formatCurrency } from '@/utils/format';
+import Pagination from '@/components/shared/Pagination/Pagination';
+import { CreditLimit } from '@/types/credit-limit';
+import { LIMIT_TYPES } from '@/constants/credit-limit';
 import CreditLimitModal from './CreditLimitModal';
 import HistoryModal from './HistoryModal';
 import styles from './CreditLimitTable.module.css';
@@ -14,6 +16,7 @@ import Button from '@/components/shared/Button/Button';
 import Table, { TableColumn } from '@/components/shared/Table/Table';
 import Input from '@/components/shared/Input/Input';
 import { useNotification } from '@/hooks/useNotification';
+import { getStatusDisplay } from '@/constants/status';
 
 export default function CreditLimitTable() {
   const [data, setData] = useState<CreditLimit[]>([]);
@@ -21,11 +24,12 @@ export default function CreditLimitTable() {
   
   // Pagination (For global backend list, flat)
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
 
   // Modals
   const [isCreditLimitModalOpen, setIsCreditLimitModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [selectedLimit, setSelectedLimit] = useState<CreditLimit | null>(null);
   const [initialModalTab, setInitialModalTab] = useState<1 | 2>(1);
@@ -35,7 +39,7 @@ export default function CreditLimitTable() {
 
   // Filters
   const [searchPartnerId, setSearchPartnerId] = useState('');
-  const [searchContactNo, setSearchContactNo] = useState('');
+  const [searchContractId, setSearchContractId] = useState('');
   const [searchLimitType, setSearchLimitType] = useState('');
   const [searchLimitId, setSearchLimitId] = useState('');
   const [searchStatus, setSearchStatus] = useState('');
@@ -80,7 +84,7 @@ export default function CreditLimitTable() {
       });
 
       if (searchPartnerId) params.append('partnerId', searchPartnerId);
-      if (searchContactNo) params.append('contactNo', searchContactNo);
+      if (searchContractId) params.append('contractId', searchContractId);
       if (searchLimitType) params.append('poolType', searchLimitType);
       if (searchLimitId) params.append('limitId', searchLimitId);
       if (searchStatus) params.append('status', searchStatus);
@@ -105,7 +109,7 @@ export default function CreditLimitTable() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, searchPartnerId, searchContactNo, searchLimitType, canView]);
+  }, [currentPage, pageSize, searchPartnerId, searchContractId, searchLimitType, searchLimitId, searchStatus, searchStartDate, searchEndDate, canView]);
 
   useEffect(() => {
     fetchPartners();
@@ -122,7 +126,7 @@ export default function CreditLimitTable() {
 
   const handleClearSearch = () => {
     setSearchPartnerId('');
-    setSearchContactNo('');
+    setSearchContractId('');
     setSearchLimitType('');
     setSearchLimitId('');
     setSearchStatus('');
@@ -137,18 +141,22 @@ export default function CreditLimitTable() {
     return val.toLocaleString('vi-VN');
   };
 
-  const getStatusDisplay = (status?: string) => {
-    const s = (status || '').toUpperCase();
-    if (s === 'PENDING' || s === 'PENDING_APPROVAL' || s === 'CHỜ DUYỆT') {
-      return { text: 'Chờ duyệt', className: styles.pending };
+  const getLocalStatusDisplay = (record: any) => {
+    if (!record) return { text: '-', className: '' };
+    let statusVal = typeof record === 'string' ? record : record.status;
+    if (typeof record === 'object' && record.endDate) {
+      const end = new Date(record.endDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (end < today) {
+        statusVal = 'CLOSE';
+      }
     }
-    if (s === 'APPROVED' || s === 'ACTIVE' || s === 'ĐÃ DUYỆT') {
-      return { text: 'Đã duyệt', className: styles.active }; // .active is green
-    }
-    if (s === 'INACTIVE' || s === 'NGỪNG HOẠT ĐỘNG') {
-      return { text: 'Ngừng hoạt động', className: styles.close };
-    }
-    return { text: status || 'Không xác định', className: styles.close };
+    const { label, className } = getStatusDisplay(statusVal);
+    return {
+      text: label,
+      className: styles[className as keyof typeof styles] || styles.close
+    };
   };
 
   // --- Tree Logic ---
@@ -163,33 +171,76 @@ export default function CreditLimitTable() {
   };
 
   const treeData = useMemo(() => {
+    // Group by partnerId
+    const grouped = (data as any[]).reduce((acc, curr) => {
+      const pId = curr.partnerId || 'unknown';
+      if (!acc[pId]) {
+        acc[pId] = [];
+      }
+      acc[pId].push(curr);
+      return acc;
+    }, {} as Record<string, any[]>);
+
     const flattened: any[] = [];
     let groupIndex = 1;
 
-    (data as any[]).forEach((parent, index) => {
-      const parentKey = parent.id || String(index);
-      const hasChildren = parent.children && Array.isArray(parent.children) && parent.children.length > 0;
+    (Object.entries(grouped) as [string, any[]][]).forEach(([pId, limits]) => {
+      const partner = partnerOptions.find(p => p.id === pId) || {};
+      const partnerName = partner.branchCusId ? `${partner.branchCusId} - ${partner.cusName}` : pId;
+      const groupKey = `partner_${pId}`;
+      const isExpanded = expandedRows[groupKey] !== false; // Default expanded
+
+      let totalPool = Number(partner.totalPool) || 0;
+      let usedPool = Number(partner.usedPool) || 0;
+      let remainPool = Number(partner.remainPool) || 0;
       
-      flattened.push({
-        ...parent,
-        _treeInfo: {
-          stt: String(groupIndex),
-          isRoot: true,
-          hasChildren: hasChildren,
-          isExpanded: !!expandedRows[parentKey],
-          groupKey: parentKey
+      const contractNos = new Set<string>();
+      const poolTypes = new Set<string>();
+      const purposes = new Set<string>();
+
+      limits.forEach(limit => {
+        if (limit.contractNo) contractNos.add(limit.contractNo);
+        if (limit.poolType) poolTypes.add(limit.poolType);
+        if (limit.purpose) {
+            limit.purpose.split(',').forEach((p: string) => {
+                const trimmed = p.trim();
+                if (trimmed) purposes.add(trimmed);
+            });
         }
       });
 
-      if (hasChildren && expandedRows[parentKey]) {
-        parent.children.forEach((child: any, childIdx: number) => {
+      // Add Root Node (Partner)
+      flattened.push({
+        id: groupKey,
+        isPartnerNode: true,
+        partnerName: partnerName,
+        partnerId: pId,
+        totalPool,
+        usedPool,
+        remainPool,
+        currency: limits.length > 0 ? limits[0].currency : '',
+        contractNo: Array.from(contractNos).join(', '),
+        poolType: Array.from(poolTypes).join(', '),
+        purpose: Array.from(purposes).join(', '),
+        _treeInfo: {
+          stt: String(groupIndex),
+          isRoot: true,
+          hasChildren: true,
+          isExpanded: isExpanded,
+          groupKey: groupKey
+        }
+      });
+
+      // Add children limits
+      if (isExpanded) {
+        limits.forEach((limit, childIdx) => {
           flattened.push({
-            ...child,
+            ...limit,
             _treeInfo: {
               stt: `${groupIndex}.${childIdx + 1}`,
               isRoot: false,
               hasChildren: false,
-              parentId: parentKey
+              parentId: groupKey
             }
           });
         });
@@ -198,8 +249,7 @@ export default function CreditLimitTable() {
     });
 
     return flattened;
-  }, [data, expandedRows]);
-
+  }, [data, expandedRows, partnerOptions]);
 
   const columns: TableColumn<any>[] = [
     {
@@ -210,7 +260,7 @@ export default function CreditLimitTable() {
         const info = record._treeInfo;
         if (info.hasChildren) {
           return (
-            <span style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ display: 'flex', alignItems: 'center', fontWeight: 'bold' }}>
               <button 
                 className={styles.treeToggle} 
                 onClick={(e) => toggleExpand(e, info.groupKey)}
@@ -235,58 +285,78 @@ export default function CreditLimitTable() {
     {
       key: 'partnerId',
       title: 'Mã đơn vị GD',
-      render: (val) => {
-        // Fallback to searching partnerOptions to show code instead of UUID
-        const p = partnerOptions.find(opt => opt.id === val);
-        return p ? p.branchCusId || p.cusName : val;
+      render: (val, record) => {
+        if (record.isPartnerNode) {
+            return <strong style={{ color: 'var(--primary)' }}>{record.partnerName}</strong>;
+        }
+        return ''; // Hide partner code on child rows for clean view
       }
     },
-    { key: 'contactNo', title: 'Số HĐ tín dụng' },
-    { key: 'limitId', title: 'Mã hạn mức' },
-    { key: 'poolType', title: 'Loại hạn mức' },
-    { key: 'currency', title: 'Đơn vị tiền tệ', align: 'center' },
+    { key: 'contractNo', title: 'Số HĐ tín dụng' },
+    { key: 'limitId', title: 'Mã hạn mức', render: (val: unknown, record: any) => record.isPartnerNode ? '' : (val as string) },
+    { 
+      key: 'poolType', 
+      title: 'Loại hạn mức',
+      render: (val: unknown, record: any) => {
+        if (record.isPartnerNode) return val as string;
+        const strVal = String(val || '');
+        if (strVal === 'Tổng hợp' || strVal.includes('Tổng hợp')) {
+          return <span style={{ fontWeight: 600, color: '#0284c7' }}>{strVal}</span>;
+        }
+        return strVal;
+      }
+    },
+    { key: 'currency', title: 'Đơn vị tiền tệ', align: 'center', render: (val: unknown, record: any) => record.isPartnerNode && !val ? '' : (val as string) },
     {
       key: 'totalPool',
       title: 'Hạn mức tổng',
       align: 'right',
-      render: (val) => formatCurrency(val as number),
+      render: (val, record) => formatCurrency(val as number),
     },
     {
       key: 'usedPool',
       title: 'HM đã sử dụng',
       align: 'right',
-      render: (val) => <span className={styles.textRed}>{formatCurrency(val as number)}</span>,
+      render: (val, record) => <span className={styles.textRed}>{formatCurrency(val as number)}</span>,
     },
     {
       key: 'remainPool',
       title: 'HM còn lại',
       align: 'right',
-      render: (val) => <span className={styles.textBlue}>{formatCurrency(val as number)}</span>,
+      render: (val, record) => {
+        const numVal = Number(val);
+        const isNegative = !isNaN(numVal) && numVal < 0;
+        return (
+          <span className={isNegative ? styles.textRed : styles.textBlue} style={{ fontWeight: isNegative ? 600 : 400 }}>
+            {formatCurrency(numVal)}
+          </span>
+        );
+      },
     },
     {
       key: 'startDate',
       title: 'Ngày bắt đầu',
       align: 'center',
-      render: (val) => val ? new Date(val as string).toLocaleDateString('en-GB') : '-',
+      render: (val, record) => record.isPartnerNode ? '' : (val ? new Date(val as string).toLocaleDateString('en-GB') : '-'),
     },
     {
       key: 'endDate',
       title: 'Ngày hết hạn',
       align: 'center',
-      render: (val) => val ? new Date(val as string).toLocaleDateString('en-GB') : '-',
+      render: (val, record) => record.isPartnerNode ? '' : (val ? new Date(val as string).toLocaleDateString('en-GB') : '-'),
     },
     {
       key: 'creditRatio',
       title: 'TL Tài trợ/PA vay (%)',
       align: 'center',
-      render: (val) => `${val || 0}%`,
+      render: (val, record) => record.isPartnerNode ? '' : `${val || 0}%`,
     },
     { key: 'purpose', title: 'Mục đích vay vốn' },
     {
       key: 'collateral',
       title: 'Danh mục TSĐB',
       align: 'center',
-      render: (_, record) => (
+      render: (_, record) => record.isPartnerNode ? '' : (
         <button 
           className={styles.iconBtn} 
           title="Xem danh mục"
@@ -305,8 +375,9 @@ export default function CreditLimitTable() {
       key: 'status',
       title: 'Trạng thái',
       align: 'center',
-      render: (val) => {
-        const { text, className } = getStatusDisplay(val as string);
+      render: (_, record) => {
+        if (record.isPartnerNode) return '';
+        const { text, className } = getLocalStatusDisplay(record);
         return (
           <span className={`${styles.status} ${className}`}>
             {text}
@@ -320,46 +391,71 @@ export default function CreditLimitTable() {
   const handleOpenAdd = () => {
     setSelectedLimit(null);
     setInitialModalTab(1);
+    setModalMode('create');
     setIsCreditLimitModalOpen(true);
   };
 
   const handleOpenEdit = () => {
-    if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hợp đồng để sửa');
-    const limit = data.find(item => item.id === selectedRowId);
-    if (!limit) return;
+    if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hạn mức để sửa');
+    const limit = treeData.find(item => item.id === selectedRowId);
+    if (!limit || limit.isPartnerNode) return notifyError('Lỗi', 'Không thể sửa dòng đối tác');
     setSelectedLimit(limit);
     setInitialModalTab(1);
+    setModalMode('edit');
     setIsCreditLimitModalOpen(true);
   };
 
-  const handleDelete = () => {
-    if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hợp đồng để xóa');
-    // Implement delete logic here
-    notifyError('Thông báo', 'Tính năng xóa đang được phát triển');
+  const handleDelete = async () => {
+    if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hạn mức để xóa');
+    const limit = treeData.find(item => item.id === selectedRowId);
+    if (!limit || limit.isPartnerNode) return notifyError('Lỗi', 'Không thể xoá dòng đối tác');
+    
+    if (!window.confirm("Bạn có chắc chắn muốn xóa hạn mức này?")) return;
+    try {
+      setIsLoading(true);
+      const deleteUrl = limit.partnerId 
+        ? `/v1/capital-source/partners/${limit.partnerId}/credit-limits/${selectedRowId}`
+        : `/v1/capital-source/credit-limits/${selectedRowId}`;
+        
+      await apiClient.delete(deleteUrl);
+      notifySuccess('Thành công', 'Đã gửi yêu cầu xóa hạn mức');
+      fetchCreditLimits();
+      setSelectedRowId(null);
+    } catch (error: any) {
+      notifyError('Lỗi', error.response?.data?.message || 'Không thể xóa hạn mức');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleOpenDetails = () => {
-    if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hợp đồng để xem chi tiết');
-    // Same as Edit for now but maybe readonly in future
-    const limit = data.find(item => item.id === selectedRowId);
-    if (!limit) return;
+    if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hạn mức để xem chi tiết');
+    const limit = treeData.find(item => item.id === selectedRowId);
+    if (!limit || limit.isPartnerNode) return notifyError('Lỗi', 'Không thể xem chi tiết dòng đối tác');
     setSelectedLimit(limit);
     setInitialModalTab(1);
+    setModalMode('view');
     setIsCreditLimitModalOpen(true); 
   };
 
   const canApproveReject = useMemo(() => {
     if (!selectedRowId) return false;
     const limit = treeData.find((item: any) => item.id === selectedRowId);
-    if (!limit) return false;
-    return limit.status === 'PENDING_APPROVAL' || limit.status === 'PENDING';
+    if (!limit || limit.isPartnerNode) return false;
+    return ['PENDING_APPROVAL', 'PENDING', 'PENDING_DELETE'].includes(limit.status);
   }, [selectedRowId, treeData]);
 
   const handleApprove = async () => {
     if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hạn mức để duyệt');
+    const limit = treeData.find((item: any) => item.id === selectedRowId);
+    if (!limit || limit.isPartnerNode) return;
     try {
       setIsLoading(true);
-      await apiClient.put(`/v1/capital-source/credit-limits/${selectedRowId}/approve`);
+      if (limit.status === 'PENDING_DELETE') {
+        await apiClient.put(`/v1/capital-source/credit-limits/${selectedRowId}/approve-delete`);
+      } else {
+        await apiClient.put(`/v1/capital-source/credit-limits/${selectedRowId}/approve`);
+      }
       notifySuccess('Thành công', 'Đã duyệt toàn bộ hạn mức của đối tác');
       fetchCreditLimits();
       setSelectedRowId(null);
@@ -372,9 +468,15 @@ export default function CreditLimitTable() {
 
   const handleReject = async () => {
     if (!selectedRowId) return notifyError('Lỗi', 'Vui lòng chọn một hạn mức để từ chối');
+    const limit = treeData.find((item: any) => item.id === selectedRowId);
+    if (!limit || limit.isPartnerNode) return;
     try {
       setIsLoading(true);
-      await apiClient.put(`/v1/capital-source/credit-limits/${selectedRowId}/reject`);
+      if (limit.status === 'PENDING_DELETE') {
+        await apiClient.put(`/v1/capital-source/credit-limits/${selectedRowId}/reject-delete`);
+      } else {
+        await apiClient.put(`/v1/capital-source/credit-limits/${selectedRowId}/reject`);
+      }
       notifySuccess('Thành công', 'Đã từ chối toàn bộ hạn mức của đối tác');
       fetchCreditLimits();
       setSelectedRowId(null);
@@ -421,8 +523,8 @@ export default function CreditLimitTable() {
             <Input type="text" placeholder="Nhập mã hạn mức" value={searchLimitId} onChange={(e) => setSearchLimitId(e.target.value)} />
           </div>
           <div className={styles.filterGroup}>
-            <span className={styles.filterLabel}>Số HĐ tín dụng</span>
-            <Input type="text" placeholder="Nhập số HĐ tín dụng" value={searchContactNo} onChange={(e) => setSearchContactNo(e.target.value)} />
+            <span className={styles.filterLabel}>ID Hợp đồng</span>
+            <Input type="text" placeholder="Nhập ID hợp đồng" value={searchContractId} onChange={(e) => setSearchContractId(e.target.value)} />
           </div>
           <div className={styles.filterGroup}>
             <span className={styles.filterLabel}>Loại hạn mức</span>
@@ -496,6 +598,12 @@ export default function CreditLimitTable() {
                 <Button variant="outline" onClick={handleDelete} disabled={!selectedRowId}>
                   <Trash2 size={16} style={{ marginRight: 6, display: 'inline', color: 'red' }} /> <span style={{color: 'red'}}>Xóa</span>
                 </Button>
+                <Button variant="outline" onClick={handleApprove} disabled={!canApproveReject || isLoading} style={{ borderColor: 'green' }}>
+                  <Check size={16} style={{ marginRight: 6, display: 'inline', color: 'green' }} /> <span style={{color: 'green'}}>Phê duyệt</span>
+                </Button>
+                <Button variant="outline" onClick={handleReject} disabled={!canApproveReject || isLoading} style={{ borderColor: 'orange' }}>
+                  <X size={16} style={{ marginRight: 6, display: 'inline', color: 'orange' }} /> <span style={{color: 'orange'}}>Từ chối</span>
+                </Button>
                 <Button variant="outline" onClick={handleOpenDetails} disabled={!selectedRowId}>
                   <FileBox size={16} style={{ marginRight: 6, display: 'inline' }} /> Chi tiết
                 </Button>
@@ -535,21 +643,17 @@ export default function CreditLimitTable() {
             selectedRowkey={selectedRowId}
           />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-            <div>Hiển thị {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} của {totalItems} bản ghi</div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <select className={styles.select} style={{ width: 'auto', padding: '4px 8px' }}>
-                <option>10 bản ghi/trang</option>
-              </select>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button className={styles.iconBtn} style={{ border: '1px solid var(--border)', padding: '4px 8px' }}>K</button>
-                <button className={styles.iconBtn} style={{ border: '1px solid var(--border)', padding: '4px 8px' }}>&lt;</button>
-                <button className={styles.iconBtn} style={{ border: '1px solid var(--border)', padding: '4px 8px', background: '#eff6ff', color: '#2563eb' }}>1</button>
-                <button className={styles.iconBtn} style={{ border: '1px solid var(--border)', padding: '4px 8px' }}>&gt;</button>
-                <button className={styles.iconBtn} style={{ border: '1px solid var(--border)', padding: '4px 8px' }}>&gt;|</button>
-              </div>
-            </div>
-          </div>
+          <Pagination 
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+            styles={styles}
+          />
         </div>
       </div>
 
@@ -562,6 +666,7 @@ export default function CreditLimitTable() {
           }} 
           limitData={selectedLimit}
           initialTab={initialModalTab}
+          mode={modalMode}
         />
       )}
 

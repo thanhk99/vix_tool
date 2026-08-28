@@ -1,0 +1,625 @@
+﻿"use client";
+import { v4 as uuidv4 } from "uuid";
+import { useNotification } from "@/hooks/useNotification";
+import apiClient from "@/lib/api/client";
+import { PartnersItem, CreatePartnerRequest } from "@/types/funding.types";
+import { useEffect, useState } from "react";
+import styles from "./PartnerFormModal.module.css";
+import { UsersRound, X, Printer, Save, Pen } from "lucide-react";
+import Input from "@/components/shared/Input/Input";
+import Select from "@/components/shared/Select/Select";
+import Button from "@/components/shared/Button/Button";
+import SignatureTab from "./SignatureTab";
+import SealTab from "./SealTab";
+import AuthorizationTab from "./AuthorizationTab";
+import CustommerTypeTab from "./CustommerTypeTab";
+import ContactTab from "./ContactTab";
+import BankAccountTab from "./BankAccountTab";
+import AssetTab from "./AssetTab";
+import ContractTab from "./ContractTab";
+import { useAuthStore } from "@/stores/auth.store";
+import Modal from "@/components/shared/Modal/Modal";
+
+interface PartnerFormModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    partnerId: string | null;
+    isView?: boolean;
+    onSuccess: () => void;
+}
+
+export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess, isView = false }: PartnerFormModalProps) {
+    const [loading, setLoading] = useState(false);
+    const [localPartnerId, setLocalPartnerId] = useState<string | null>(partnerId);
+    const { notifyError, notifyWarning, notifySuccess } = useNotification();
+    const userId = useAuthStore((state) => state.userId);
+
+    const initialFormData: CreatePartnerRequest & { totalPool?: string } = {
+        cusId: "",
+        branchCusId: "",
+        cusName: "",
+        shortName: "",
+        address: "",
+        idCode: "",
+        fistIssueDate: "",
+        lastIssueDate: "",
+        issueBy: "",
+        changeCount: 0,
+        opLiscenseNo: "",
+        opIssueDate: "",
+        mobile: "",
+        email: "",
+        website: "",
+        cusType: "",
+        businessType: "",
+        professionalInvestor: false,
+        professionalStartDate: "",
+        professionalEndDate: "",
+        status: "ACTIVE",
+        totalPool: "",
+    };
+
+    const [formData, setFormData] = useState<CreatePartnerRequest & { totalPool?: string } | PartnersItem>(initialFormData);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'custommertype' | 'contact' | 'bank_account'>('signature');
+
+    useEffect(() => {
+        if (isOpen) {
+            if (localPartnerId) {
+                // Edit mode
+                const fetchPartner = async () => {
+                    setLoading(true);
+                    setError(null);
+                    try {
+                        const res = await apiClient.get(`/v1/capital-source/partners/${localPartnerId}`);
+                        const found = res.data?.data || res.data || res;
+                        if (found && found.id) {
+                            if (found.totalPool !== undefined && found.totalPool !== null) {
+                                found.totalPool = Number(found.totalPool).toLocaleString('vi-VN');
+                            }
+                            setFormData(found);
+                        } else {
+                            notifyError('Lá»—i', "KhÃ´ng tÃ¬m tháº¥y Ä‘á»‘i tÃ¡c vá»›i mÃ£ nÃ y!");
+                            setError("KhÃ´ng tÃ¬m tháº¥y Ä‘á»‘i tÃ¡c");
+                        }
+                    } catch (error: any) {
+                        setError(error.message || 'KhÃ´ng thá»ƒ táº£i thÃ´ng tin!');
+                        notifyError('Lá»—i', 'KhÃ´ng thá»ƒ táº£i thÃ´ng tin!');
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                fetchPartner();
+            } else {
+                // Create mode
+                setFormData(initialFormData);
+                setActiveTab('signature');
+                setError(null);
+            }
+        }
+    }, [isOpen, localPartnerId]);
+
+    if (!isOpen) return null;
+
+    // Xu ly thay doi input 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
+
+        if (name === 'totalPool') {
+            const numericValue = value.replace(/\D/g, '');
+            const formattedValue = numericValue ? Number(numericValue).toLocaleString('vi-VN') : '';
+            setFormData((prev: any) => ({
+                ...prev,
+                [name]: formattedValue,
+            }));
+            return;
+        }
+
+        setFormData((prev: any) => ({
+            ...prev,
+            [name]: type === "checkbox" ? checked : value,
+        }));
+    };
+
+    // Verify
+    
+    const handleTabClick = async (tabName: 'signature' | 'authorization' | 'custommertype' | 'contact' | 'bank_account') => {
+        if (!localPartnerId) {
+            // Validate minimum requirements for auto-creation
+            if (!formData.branchCusId?.trim()) {
+                notifyWarning('Cáº£nh bÃ¡o', 'Vui lÃ²ng nháº­p MÃ£ Ä‘Æ¡n vá»‹ GD trÆ°á»›c khi nháº­p cÃ¡c thÃ´ng tin khÃ¡c!');
+                return;
+            }
+            if (!formData.cusName?.trim()) {
+                notifyWarning('Cáº£nh bÃ¡o', 'Vui lÃ²ng nháº­p TÃªn KH trÆ°á»›c khi nháº­p cÃ¡c thÃ´ng tin khÃ¡c!');
+                return;
+            }
+
+            setSaving(true);
+            try {
+                const submitData = {
+                    cusId: formData.cusId || '',
+                    branchCusId: formData.branchCusId,
+                    cusName: formData.cusName,
+                    shortName: formData.shortName || '',
+                    address: formData.address || '',
+                    idCode: formData.idCode || '',
+                    fistIssueDate: formData.fistIssueDate || null,
+                    lastIssueDate: formData.lastIssueDate || null,
+                    changeReason: formData.changeReason || '',
+                    issueBy: formData.issueBy || '',
+                    changeCount: formData.changeCount || 0,
+                    opLiscenseNo: formData.opLiscenseNo || '',
+                    opIssueDate: formData.opIssueDate || null,
+                    mobile: formData.mobile || '',
+                    email: formData.email || '',
+                    website: formData.website || '',
+                    cusType: formData.cusType || '',
+                    businessType: formData.businessType || '',
+                    professionalInvestor: formData.professionalInvestor || false,
+                    professionalStartDate: formData.professionalInvestor ? formData.professionalStartDate : null,
+                    professionalEndDate: formData.professionalInvestor ? formData.professionalEndDate : null,
+                    status: 'PENDING_APPROVAL',
+                    totalPool: formData.totalPool ? Number(String(formData.totalPool).replace(/\./g, '')) : 0,
+                    isActive: formData.isActive !== undefined ? formData.isActive : true,
+                };
+                
+                const res: any = await apiClient.post("/v1/capital-source/partners", submitData);
+                if (res?.data?.success || res?.success) {
+                    const newId = res?.data?.data?.id || res?.data?.id || res?.id;
+                    if (newId) {
+                        setLocalPartnerId(newId);
+                        notifySuccess('ThÃ nh cÃ´ng', 'ÄÃ£ tá»± Ä‘á»™ng lÆ°u thÃ´ng tin chung. Báº¡n cÃ³ thá»ƒ nháº­p tiáº¿p thÃ´ng tin.');
+                        onSuccess(); // Refresh parent list
+                        setActiveTab(tabName);
+                    }
+                } else {
+                    notifyError('Lá»—i', res?.message || res?.data?.message || 'KhÃ´ng thá»ƒ táº¡o Ä‘á»‘i tÃ¡c tá»± Ä‘á»™ng');
+                }
+            } catch (err: any) {
+                notifyError('Lá»—i', err.message || 'Lá»—i khi táº¡o Ä‘á»‘i tÃ¡c tá»± Ä‘á»™ng');
+            } finally {
+                setSaving(false);
+            }
+        } else {
+            setActiveTab(tabName);
+        }
+    };
+
+    const validateForm = () => {
+        // 1. CÃ¡c trÆ°á»ng báº¯t buá»™c
+        if (!formData?.cusId?.trim()) { notifyWarning("Cáº£nh bÃ¡o", "Vui lÃ²ng nháº­p MÃ£ KH!"); return false; }
+        if (!formData?.branchCusId?.trim()) { notifyWarning("Cáº£nh bÃ¡o", "Vui lÃ²ng nháº­p MÃ£ Ä‘Æ¡n vá»‹ GD!"); return false; }
+        if (!formData?.cusName?.trim()) { notifyWarning("Cáº£nh bÃ¡o", "Vui lÃ²ng nháº­p TÃªn KH!"); return false; }
+        if (!formData?.shortName?.trim()) { notifyWarning("Cáº£nh bÃ¡o", "Vui lÃ²ng nháº­p TÃªn viáº¿t táº¯t!"); return false; }
+        if (!formData?.idCode?.trim()) { notifyWarning("Cáº£nh bÃ¡o", "Vui lÃ²ng nháº­p Sá»‘ ÄKKD/CCCD!"); return false; }
+        
+        // 2. Email
+        if (formData.email?.trim()) {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(formData.email)) {
+                notifyError("Lá»—i Ä‘á»‹nh dáº¡ng", "Email khÃ´ng Ä‘Ãºng Ä‘á»‹nh dáº¡ng!");
+                return false;
+            }
+        }
+
+        // 3. Sá»‘ Ä‘iá»‡n thoáº¡i
+        if (formData.mobile?.trim()) {
+            const phoneRegex = /^[0-9\+\-\s\(\)]+$/;
+            if (!phoneRegex.test(formData.mobile)) {
+                notifyError("Lá»—i Ä‘á»‹nh dáº¡ng", "Sá»‘ Ä‘iá»‡n thoáº¡i khÃ´ng há»£p lá»‡!");
+                return false;
+            }
+        }
+
+        // 4. NgÃ y cáº¥p
+        if (formData.fistIssueDate && formData.lastIssueDate) {
+            if (new Date(formData.lastIssueDate) < new Date(formData.fistIssueDate)) {
+                notifyError("Lá»—i ngÃ y thÃ¡ng", "NgÃ y cáº¥p cuá»‘i pháº£i sau hoáº·c báº±ng ngÃ y cáº¥p láº§n Ä‘áº§u!");
+                return false;
+            }
+        }
+
+        // 5. NhÃ  Ä‘áº§u tÆ° chuyÃªn nghiá»‡p
+        if (formData.professionalInvestor) {
+            if (!formData.professionalStartDate) {
+                notifyError("Lá»—i", "NgÃ y báº¯t Ä‘áº§u NÄT chuyÃªn nghiá»‡p khÃ´ng Ä‘Æ°á»£c Ä‘á»ƒ trá»‘ng khi lÃ  NÄT chuyÃªn nghiá»‡p");
+                return false;
+            }
+            if (formData.professionalEndDate && new Date(formData.professionalEndDate) < new Date(formData.professionalStartDate)) {
+                notifyError("Lá»—i ngÃ y thÃ¡ng", "NgÃ y káº¿t thÃºc NÄT chuyÃªn nghiá»‡p pháº£i sau hoáº·c báº±ng ngÃ y báº¯t Ä‘áº§u!");
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    // Save data 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!validateForm()) return;
+        
+        setSaving(true);
+        try {
+            const submitData = {
+                cusId: formData.cusId,
+                branchCusId: formData.branchCusId || '',
+                cusName: formData.cusName,
+                shortName: formData.shortName || '',
+                address: formData.address || '',
+                idCode: formData.idCode,
+                fistIssueDate: formData.fistIssueDate || null,
+                lastIssueDate: formData.lastIssueDate || null,
+                changeReason: formData.changeReason || '',
+                issueBy: formData.issueBy || '',
+                changeCount: formData.changeCount || 0,
+                opLiscenseNo: formData.opLiscenseNo || '',
+                opIssueDate: formData.opIssueDate || null,
+                mobile: formData.mobile || '',
+                email: formData.email || '',
+                website: formData.website || '',
+                cusType: formData.cusType || '',
+                businessType: formData.businessType || '',
+                professionalInvestor: formData.professionalInvestor || false,
+                professionalStartDate: formData.professionalInvestor ? formData.professionalStartDate : null,
+                professionalEndDate: formData.professionalInvestor ? formData.professionalEndDate : null,
+                status: formData.status || 'ACTIVE',
+                totalPool: formData.totalPool ? Number(String(formData.totalPool).replace(/\./g, '')) : 0,
+                isActive: formData.isActive !== undefined ? formData.isActive : true,
+            };
+
+            let res: any;
+            if (localPartnerId) {
+                // Edit
+                res = await apiClient.put(`/v1/capital-source/partners/${localPartnerId}`, submitData);
+            } else {
+                // Create
+                const createData = {
+                    id: uuidv4(),
+                    ...submitData,
+                    createdBy: userId,
+                    updatedBy: userId,
+                    lastUpdated: new Date().toISOString().split("T")[0],
+                };
+                res = await apiClient.post("/v1/capital-source/partners", createData);
+            }
+
+                        if (res && res.success === false) {
+                notifyError('Lá»—i', res.message || 'Thao tÃ¡c tháº¥t báº¡i!');
+                return;
+            }
+            
+            if (localPartnerId) {
+                notifySuccess('ThÃ nh cÃ´ng', 'Cáº­p nháº­t Ä‘á»‘i tÃ¡c thÃ nh cÃ´ng!');
+                onSuccess();
+                onClose();
+            } else {
+                const newId = res?.data?.data?.id || res?.data?.id || res?.id || (res?.data && res.data.id);
+                if (newId) {
+                    setLocalPartnerId(newId);
+                    notifySuccess('ThÃ nh cÃ´ng', 'ThÃªm má»›i Ä‘á»‘i tÃ¡c thÃ nh cÃ´ng! Báº¡n cÃ³ thá»ƒ tiáº¿p tá»¥c nháº­p thÃ´ng tin cÃ¡c tab.');
+                    onSuccess();
+                } else {
+                    notifySuccess('ThÃ nh cÃ´ng', 'ThÃªm má»›i Ä‘á»‘i tÃ¡c thÃ nh cÃ´ng!');
+                    onSuccess();
+                    onClose();
+                }
+            } } catch (error: any) {
+            const errorMsg = error?.message || error?.response?.data?.message || 'CÃ³ lá»—i xáº£y ra!';
+            notifyError('Lá»—i', errorMsg);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const footer = (
+        <>
+            <Button
+                variant="outline"
+                onClick={() => window.print()}
+                disabled={saving || loading}
+            >
+                <Printer size={16} /> In HÄ
+            </Button>
+            <Button
+                variant="primary"
+                onClick={handleSubmit}
+                disabled={saving || loading}
+                isLoading={saving}
+            >
+                <Save size={16} /> LÆ°u
+            </Button>
+            <Button
+                variant="outline"
+                onClick={onClose}
+                disabled={saving}
+            >
+                ÄÃ³ng
+            </Button>
+        </>
+    );
+
+    const title = (
+        <>
+            <UsersRound size={22} color="var(--primary)" />
+            {isView ? 'Chi tiáº¿t Ä‘á»‘i tÃ¡c' : (partnerId ? 'Cáº­p nháº­t Ä‘á»‘i tÃ¡c' : 'ThÃªm má»›i Ä‘á»‘i tÃ¡c')}
+        </>
+    );
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={title}
+            size="xl"
+            footer={footer}
+            closeOnOverlayClick={false}
+        >
+            {loading ? (
+                <div className={styles.loading}>Äang táº£i dá»¯ liá»‡u...</div>
+            ) : error ? (
+                <div className={styles.loading}>{error}</div>
+            ) : (
+                <div className={styles.modalBody}>
+                    <div className={styles.card}>
+                            <h3 className={styles.sectionTitle}>THÃ”NG TIN CHUNG</h3>
+                            
+                            <div className={styles.formGrid}>
+                                <Input disabled={isView}
+                                    label="MÃ£ KH *"
+                                    type="text"
+                                    name="cusId"
+                                    value={formData.cusId}
+                                    onChange={handleChange}
+                                />
+                                
+                                <Input disabled={isView}
+                                    label="MÃ£ Ä‘Æ¡n vá»‹ GD *"
+                                    type="text"
+                                    name="branchCusId"
+                                    value={formData.branchCusId || ""}
+                                    onChange={handleChange}
+                                />
+
+                                <Input disabled={isView}
+                                    label="TÃªn KH *"
+                                    type="text"
+                                    name="cusName"
+                                    value={formData.cusName}
+                                    onChange={handleChange}
+                                />
+
+                                <Input disabled={isView}
+                                    label="TÃªn viáº¿t táº¯t *"
+                                    type="text"
+                                    name="shortName"
+                                    value={formData.shortName || ""}
+                                    onChange={handleChange}
+                                />
+
+                                <Input disabled={isView}
+                                    label="Äá»‹a chá»‰"
+                                    type="text"
+                                    name="address"
+                                    value={formData.address || ""}
+                                    onChange={handleChange}
+                                />
+
+                                <Input disabled={isView}
+                                    label="Äiá»‡n thoáº¡i"
+                                    type="text"
+                                    name="mobile"
+                                    value={formData.mobile || ""}
+                                    onChange={handleChange}
+                                />
+
+                                <Input disabled={isView}
+                                    label="Email"
+                                    type="email"
+                                    name="email"
+                                    value={formData.email || ""}
+                                    onChange={handleChange}
+                                />
+
+                                <Input disabled={isView}
+                                    label="Website"
+                                    type="text"
+                                    name="website"
+                                    value={formData.website || ""}
+                                    onChange={handleChange}
+                                />
+
+                                <Input disabled={isView}
+                                    label="Sá»‘ ÄKKD/CCCD *"
+                                    type="text"
+                                    name="idCode"
+                                    value={formData.idCode}
+                                    onChange={handleChange}
+                                />
+
+                                {/* Row: NgÃ y cáº¥p láº§n Ä‘áº§u | Sá»‘ láº§n thay Ä‘á»•i | NgÃ y thay Ä‘á»•i gáº§n nháº¥t | LÃ½ do thay Ä‘á»•i | NÆ¡i cáº¥p */}
+                                <div className={styles.row4}>
+                                    <Input disabled={isView}
+                                        label="NgÃ y cáº¥p láº§n Ä‘áº§u"
+                                        type="date"
+                                        name="fistIssueDate"
+                                        value={formData.fistIssueDate || ""}
+                                        onChange={handleChange}
+                                    />
+
+                                    <Input disabled={isView}
+                                        label="Sá»‘ láº§n thay Ä‘á»•i"
+                                        type="number"
+                                        name="changeCount"
+                                        value={String(formData.changeCount ?? 0)}
+                                        onChange={handleChange}
+                                    />
+
+                                    <Input disabled={isView}
+                                        label="NgÃ y thay Ä‘á»•i gáº§n nháº¥t"
+                                        type="date"
+                                        name="lastIssueDate"
+                                        value={formData.lastIssueDate || ""}
+                                        onChange={handleChange}
+                                    />
+
+                                    <Input disabled={isView}
+                                        label="LÃ½ do thay Ä‘á»•i"
+                                        name="changeReason"
+                                        value={formData.changeReason || ""}
+                                        onChange={handleChange}
+                                        placeholder="Nháº­p lÃ½ do thay Ä‘á»•i"
+                                    />
+
+                                    <Input disabled={isView}
+                                        label="NÆ¡i cáº¥p"
+                                        type="text"
+                                        name="issueBy"
+                                        value={formData.issueBy || ""}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+
+                                {/* Row: GP hoáº¡t Ä‘á»™ng | NgÃ y cáº¥p GP | Tá»•ng háº¡n má»©c */}
+                                <div className={styles.row3gp}>
+                                    <Input disabled={isView}
+                                        label="GP hoáº¡t Ä‘á»™ng"
+                                        type="text"
+                                        name="opLiscenseNo"
+                                        value={formData.opLiscenseNo || ""}
+                                        onChange={handleChange}
+                                    />
+
+                                    <Input disabled={isView}
+                                        label="NgÃ y cáº¥p GP"
+                                        type="date"
+                                        name="opIssueDate"
+                                        value={formData.opIssueDate || ""}
+                                        onChange={handleChange}
+                                    />
+
+                                    <Input disabled={isView}
+                                        label="Tá»•ng háº¡n má»©c (VND)"
+                                        type="text"
+                                        name="totalPool"
+                                        value={formData.totalPool ?? ""}
+                                        onChange={handleChange}
+                                        placeholder="Nháº­p tá»•ng háº¡n má»©c..."
+                                    />
+                                </div>
+
+                                {/* Row: Tráº¡ng thÃ¡i | Checkbox NÄT CN | NgÃ y báº¯t Ä‘áº§u NÄT CN | NgÃ y káº¿t thÃºc NÄT CN */}
+                                <div className={styles.rowStatus}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: 500, color: '#374151' }}>Tráº¡ng thÃ¡i hoáº¡t Ä‘á»™ng</span>
+                                        <Select disabled={isView}
+                                            name="isActive"
+                                            value={formData.isActive === false ? 'false' : 'true'}
+                                            onChange={(val) => setFormData(prev => ({ ...prev, isActive: val === 'true' }))}
+                                            options={[
+                                                { label: 'Hoáº¡t Ä‘á»™ng', value: 'true' },
+                                                { label: 'Dá»«ng hoáº¡t Ä‘á»™ng', value: 'false' }
+                                            ]}
+                                        />
+                                    </div>
+
+                                    <div className={styles.checkboxField}>
+                                        <label>
+                                            <input disabled={isView}
+                                                type="checkbox"
+                                                name="professionalInvestor"
+                                                checked={formData.professionalInvestor ?? false}
+                                                onChange={handleChange}
+                                            />
+                                            <span>NhÃ  Ä‘áº§u tÆ° chuyÃªn nghiá»‡p</span>
+                                        </label>
+                                    </div>
+
+                                    <Input label="NgÃ y báº¯t Ä‘áº§u NÄT CN"
+                                        type="date"
+                                        name="professionalStartDate"
+                                        value={formData.professionalStartDate || ""}
+                                        onChange={handleChange}
+                                        disabled={isView || !formData.professionalInvestor}
+                                    />
+
+                                    <Input label="NgÃ y káº¿t thÃºc NÄT CN"
+                                        type="date"
+                                        name="professionalEndDate"
+                                        value={formData.professionalEndDate || ""}
+                                        onChange={handleChange}
+                                        disabled={isView || !formData.professionalInvestor}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className={styles.card}>
+                            <div className={styles.tabs}>
+                            <button 
+                                className={`${styles.tab} ${activeTab === 'signature' ? styles.tabActive : ''}`}
+                                onClick={() => handleTabClick('signature')}
+                            >
+                                Chá»¯ kÃ½ & Con dáº¥u
+                            </button>
+                            <button 
+                                className={`${styles.tab} ${activeTab === 'authorization' ? styles.tabActive : ''}`}
+                                onClick={() => handleTabClick('authorization')}
+                            >
+                                UQ / NgÆ°á»i Ä‘áº¡i diá»‡n PL
+                            </button>
+                            <button 
+                                className={`${styles.tab} ${activeTab === 'custommertype' ? styles.tabActive : ''}`}
+                                onClick={() => handleTabClick('custommertype')}
+                            >
+                                Loáº¡i hÃ¬nh KH
+                            </button>
+                            <button 
+                                className={`${styles.tab} ${activeTab === 'contact' ? styles.tabActive : ''}`}
+                                onClick={() => handleTabClick('contact')}
+                            >
+                                NgÆ°á»i liÃªn há»‡
+                            </button>
+                            <button 
+                                className={`${styles.tab} ${activeTab === 'bank_account' ? styles.tabActive : ''}`}
+                                onClick={() => handleTabClick('bank_account')}
+                            >
+                                TÃ i khoáº£n NH/CK
+                            </button>
+                        </div>
+                        
+                        <div className={styles.tabContent}>
+                            {!partnerId ? (
+                                <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                                    Vui lÃ²ng Ä‘iá»n vÃ  LÆ°u thÃ´ng tin chung trÆ°á»›c khi nháº­p dá»¯ liá»‡u chi tiáº¿t!
+                                </div>
+                            ) : (
+                                <>
+                                    {activeTab === 'signature' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                            <div>
+                                                <SignatureTab partnerId={localPartnerId || ""} isView={isView} />
+                                            </div>
+                                            <div>
+                                                <SealTab partnerId={localPartnerId || ""} isView={isView} />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {activeTab === 'authorization' && <AuthorizationTab partnerId={localPartnerId || ""} isView={isView} />}
+                                    {activeTab === 'custommertype' && <CustommerTypeTab partnerId={localPartnerId || ""} isView={isView} />}
+                                    {activeTab === 'contact' && <ContactTab partnerId={localPartnerId || ""} isView={isView} />}
+                                    {activeTab === 'bank_account' && <BankAccountTab partnerId={localPartnerId || ""} isView={isView} />}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </Modal>
+    );
+}

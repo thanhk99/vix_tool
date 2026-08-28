@@ -253,3 +253,10 @@
 .iconBtn:hover {
   background: var(--background);
 }
+
+.pendingDelete {
+  background-color: #ffe4e6;
+  color: #e11d48;
+  padding: 4px 8px;
+  border-radius: 12px;
+}

@@ -4,7 +4,6 @@ import Table, { TableColumn } from "@/components/shared/Table/Table";
 import { useNotification } from "@/hooks/useNotification";
 import apiClient from "@/lib/api/client";
 import { AuthorizationItem, CreateAuthorization } from "@/types/funding.types";
-import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./AuthorizationTab.module.css";
 import Button from "@/components/shared/Button/Button";
@@ -12,296 +11,296 @@ import Modal from "@/components/shared/Modal/Modal";
 import AuthorizationForm from "./AuthorizationForm";
 
 interface AuthorizationTabProps {
-    partnerId: string
-};
+    partnerId: string;
+    isView?: boolean;
+    pendingItems?: AuthorizationItem[];
+    setPendingItems?: React.Dispatch<React.SetStateAction<AuthorizationItem[]>>;
+}
 
-export default function AuthorizationTab({partnerId}: AuthorizationTabProps) {
-    const [author, setAuthor] = useState<AuthorizationItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const { notifyError, notifySuccess, notifyInfo, notifyWarning } = useNotification();
+export default function AuthorizationTab({ partnerId, isView, pendingItems, setPendingItems }: AuthorizationTabProps) {
+    const [allAuths, setAllAuths] = useState<AuthorizationItem[]>(pendingItems || []);
+    const [loading, setLoading] = useState(false);
+    const { notifyError, notifySuccess } = useNotification();
     const [isOpenModal, setIsOpenModal] = useState(false);
     
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
-    const [totalPages, setTotalPages] = useState(1);
-    const pageSize = 3;
-    const startIndex = (currentPage - 1) * pageSize;
+    // 'LEGAL_REP' or 'AUTHORIZATION'
+    const [activeSubTab, setActiveSubTab] = useState<'LEGAL_REP' | 'AUTHORIZATION'>('LEGAL_REP');
 
-    const fetchAuthor = async() => {
+    // Pagination specific to current sub-tab
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 10;
+
+    const fetchAuthor = async () => {
         try {
             setLoading(true);
-            const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/authorizations?page=${currentPage - 1}&size=${pageSize}`);
+            const res = await apiClient.get(`/v1/capital-source/partners/${partnerId}/authorizations?page=0&size=1000`);
             const payload = res.data?.data || res.data;
             if (payload && payload.content !== undefined) {
-                setAuthor(payload.content || []);
-                setTotalItems(payload.totalElements || 0);
-                setTotalPages(payload.totalPages || 1);
+                setAllAuths(payload.content || []);
             } else if (Array.isArray(payload)) {
-                setAuthor(payload);
-                setTotalItems(payload.length);
-                setTotalPages(1);
+                setAllAuths(payload);
             } else {
-                setAuthor([]);
+                setAllAuths([]);
             }
-        } catch(error:any) {
-            notifyError("Không thể tải danh sách ủy quyền!");
+        } catch (error: any) {
+            console.error("Lỗi tải danh sách ủy quyền", error);
         } finally {
             setLoading(false);
-        };
+        }
     };
 
     useEffect(() => {
-        if(partnerId) {
+        if (partnerId) {
             fetchAuthor();
+        } else if (pendingItems) {
+            setAllAuths(pendingItems);
+            setLoading(false);
+        } else {
+            setLoading(false);
         }
-    }, [partnerId, currentPage]);
+    }, [partnerId, pendingItems]);
 
-    const handlePrevPage = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
+    // Derived states
+    const legalReps = useMemo(() => {
+        return allAuths.filter(a => a.authType === 'LEGAL_REP' || (!a.authType && !a.authedName));
+    }, [allAuths]);
+
+    const authorizations = useMemo(() => {
+        return allAuths.filter(a => a.authType === 'AUTHORIZATION' || (!a.authType && !!a.authedName));
+    }, [allAuths]);
+
+    const filteredAuths = useMemo(() => {
+        return activeSubTab === 'LEGAL_REP' ? legalReps : authorizations;
+    }, [activeSubTab, legalReps, authorizations]);
+
+    const totalItems = filteredAuths.length;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    const startIndex = (currentPage - 1) * pageSize;
+    const currentData = filteredAuths.slice(startIndex, startIndex + pageSize);
+
+    const handleSubTabChange = (tab: 'LEGAL_REP' | 'AUTHORIZATION') => {
+        setActiveSubTab(tab);
+        setCurrentPage(1);
+    };
+
+    const handlePrevPage = () => { if (currentPage > 1) setCurrentPage(currentPage - 1); };
+    const handleNextPage = () => { if (currentPage < totalPages) setCurrentPage(currentPage + 1); };
+
+    // --- COLUMNS ---
+    const renderStatus = (value: unknown, row: AuthorizationItem) => {
+        const valStr = String(value || '');
+        if (activeSubTab === 'LEGAL_REP') {
+            if (valStr === "ACTIVE" || !valStr || valStr === "Hiệu lực") return <span className={styles.statusActive}>Hiệu lực</span>;
+            if (valStr === "INACTIVE" || valStr === "Hết hiệu lực") return <span className={styles.statusInactive}>Hết hiệu lực</span>;
+            return <span className={styles.statusActive}>Hiệu lực</span>;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (!row.expiryDate) return <span className={styles.statusActive}>Hiệu lực</span>;
+        
+        const expiry = new Date(row.expiryDate);
+        expiry.setHours(0, 0, 0, 0);
+
+        if (value === "DELETED") return <span className={styles.statusInactive}>Đã xóa</span>;
+        
+        if (expiry >= today) {
+            return <span className={styles.statusActive}>Hiệu lực</span>;
+        } else {
+            return <span className={styles.statusInactive}>Hết hiệu lực</span>;
         }
     };
 
-    const handleNextPage = () => {
-        if (currentPage < totalPages) {
-            setCurrentPage(currentPage + 1);
-        }
-    };
+    const legalRepColumns: TableColumn<AuthorizationItem>[] = [
+        { key: "seqId", title: "STT", width: 50, render: (_, __, i) => startIndex + i + 1 },
+        { key: "authName", title: "Tên" },
+        { key: "authidNo", title: "Số CCCD" },
+        { key: "authissueDate", title: "Ngày cấp", render: (v) => v ? new Date(v as string).toLocaleDateString("vi-VN") : "-" },
+        { key: "issuePlace", title: "Nơi cấp" },
+        { key: "authPosition", title: "Chức vụ" },
+        { key: "status", title: "Trạng thái", render: renderStatus },
+    ];
 
-    const handlePageChange = (page: number) => {
-        setCurrentPage(page);
-    };
-
-    const columns: TableColumn<AuthorizationItem>[] = [
-        {
-            key: "seqId",
-            title: "STT",
-            width: 40,
-            render: (value, row, index) => {
-                return row.seqId ?? startIndex + index + 1;
-            },
-        },
-        {
-            key: "authName",
-            title: "Tên người UQ",
-        },
-        {
-            key: "authidNo",
-            title: "CCCD người UQ",
-        },
-        {
-            key: "authissueDate",
-            title: "Ngày cấp",
-            render: (value) =>
-                value
-                    ? new Date(value as string).toLocaleDateString("vi-VN")
-                    : "-",
-        },
-        {
-            key: "issuePlace",
-            title: "Nơi cấp",
-        },
-        {
-            key: "authedName",
-            title: "Tên người được UQ",
-        },
-        {
-            key: "authedIdNo",
-            title: "CCCD người được UQ",
-        },
-        {
-            key: "authedIssueDate",
-            title: "Ngày cấp",
-            render: (value) =>
-                value
-                    ? new Date(value as string).toLocaleDateString("vi-VN")
-                    : "-",
-        },
-        {
-            key: "authNo",
-            title: "Số giấy tờ UQ",
-        },
-        {
-            key: "effDate",
-            title: "Ngày hiệu lực",
-            render: (value) =>
-                value
-                    ? new Date(value as string).toLocaleDateString("vi-VN")
-                    : "-",
-        },
-        {
-            key: "expiryDate",
-            title: "Ngày hết hạn",
-            render: (value) =>
-                value
-                    ? new Date(value as string).toLocaleDateString("vi-VN")
-                    : "-",
-        },
-        {
-            key: "authedPosition",
-            title: "Chức vụ người được UQ",
-        },
-        {
-            key: "scope",
-            title: "Phạm vi UQ",
-        },
-        {
-            key: "status",
-            title: "Trạng thái",
-            render: (value, row) => {
-                const today = new Date();
-
-                if (!row.expiryDate) {
-                    return <span>{String(value)}</span>;
-                }
-
-                const expiryDate = new Date(row.expiryDate);
-
-                if (value === "INACTIVE") {
-                    return (
-                        <span className={styles.statusInactive}>
-                            Inactive
-                        </span>
-                    );
-                }
-
-                if (expiryDate > today) {
-                    return (
-                        <span className={styles.statusActive}>
-                            Active
-                        </span>
-                    );
-                }
-
-                return (
-                    <span className={styles.statusDuedate}>
-                        Duedate
-                    </span>
-                );
-            },
-        },
-        {
-            key: "phone",
-            title: "SĐT",
-        },
-        {
-            key: "email",
-            title: "Email",
-        },
+    const authorizationColumns: TableColumn<AuthorizationItem>[] = [
+        { key: "seqId", title: "Cấp UQ", width: 60, render: (v, _, i) => (v as number) || (startIndex + i + 1) },
+        { key: "authName", title: "Người UQ" },
+        { key: "authidNo", title: "CCCD người UQ" },
+        { key: "authissueDate", title: "Ngày cấp", render: (v) => v ? new Date(v as string).toLocaleDateString("vi-VN") : "-" },
+        { key: "issuePlace", title: "Nơi cấp" },
+        { key: "authPosition", title: "Chức vụ người UQ" },
+        { key: "authedName", title: "Người nhận UQ" },
+        { key: "authedIdNo", title: "CCCD người nhận UQ" },
+        { key: "authedIssueDate", title: "Ngày cấp (Nhận)", render: (v) => v ? new Date(v as string).toLocaleDateString("vi-VN") : "-" },
+        { key: "authedIssuePlace", title: "Nơi cấp (Nhận)", render: (v) => (v as string) || "-" },
+        { key: "authedPosition", title: "Chức vụ người nhận UQ" },
+        { key: "authNo", title: "Số giấy UQ" },
+        { key: "effDate", title: "Ngày hiệu lực", render: (v) => v ? new Date(v as string).toLocaleDateString("vi-VN") : "-" },
+        { key: "expiryDate", title: "Ngày hết hạn", render: (v) => v ? new Date(v as string).toLocaleDateString("vi-VN") : "-" },
+        { key: "scope", title: "Nội dung UQ" },
+        { key: "note", title: "Ghi chú", render: (v) => (v as string) || "-" },
+        { key: "status", title: "Trạng thái", render: renderStatus },
     ];
 
     const nextSeqId = useMemo(() => {
-        if(author.length === 0) return 1;
-        const maxSeqId = Math.max(...author.map(item => item.seqId || 0));
-        return maxSeqId + 1;
-    }, [author]);
+        if (activeSubTab === 'LEGAL_REP') {
+            return legalReps.length + 1;
+        }
+        return authorizations.length + 1;
+    }, [activeSubTab, legalReps, authorizations]);
 
-    const handleCreate = async(data: CreateAuthorization) => {
+    const handleCreate = async (data: CreateAuthorization) => {
+        const payload: AuthorizationItem = { 
+            ...data, 
+            id: "temp_" + Date.now(),
+            partnerId: partnerId || "",
+            seqId: data.seqId || nextSeqId,
+            authType: activeSubTab,
+            authName: data.authName,
+            authidNo: data.authidNo,
+            authPosition: data.authPosition,
+            authissueDate: data.authissueDate,
+            issuePlace: data.issuePlace,
+            authedName: data.authedName || "",
+            authedIdNo: data.authedIdNo || "",
+            authedIssueDate: data.authedIssueDate || "",
+            authedIssuePlace: data.authedIssuePlace || "",
+            authedPosition: data.authedPosition || "",
+            authNo: data.authNo || "",
+            effDate: data.effDate || "",
+            expiryDate: data.expiryDate || "",
+            scope: data.scope || "",
+            note: data.note || "",
+            status: "ACTIVE"
+        };
+
+        if (!partnerId) {
+            const updated = [...allAuths, payload];
+            setAllAuths(updated);
+            if (setPendingItems) setPendingItems(updated);
+            notifySuccess('Thành công', activeSubTab === 'LEGAL_REP' ? 'Đã lưu Người đại diện pháp luật' : 'Đã lưu thông tin Ủy quyền');
+            setIsOpenModal(false);
+            return;
+        }
+
         try {
-            const payload = {
-                ...data, 
-                seqId: nextSeqId,
-            }
-            await apiClient.post(`/v1/capital-source/partners/${partnerId}/authorizations`, payload);
+            const apiPayload = {
+                seqId: data.seqId || nextSeqId,
+                authType: activeSubTab,
+                authName: data.authName || '',
+                authidNo: data.authidNo || '',
+                authPosition: data.authPosition || '',
+                authissueDate: data.authissueDate || null,
+                issuePlace: data.issuePlace || '',
+                authedName: data.authedName || '',
+                authedIdNo: data.authedIdNo || '',
+                authedIssueDate: data.authedIssueDate || null,
+                authedIssuePlace: data.authedIssuePlace || '',
+                authedPosition: data.authedPosition || '',
+                authNo: data.authNo || '',
+                effDate: data.effDate || null,
+                expiryDate: data.expiryDate || null,
+                scope: data.scope || '',
+                note: data.note || '',
+                phone: data.phone || '',
+                email: data.email || '',
+                status: 'ACTIVE',
+                parentAuthId: (data.parentAuthId && !data.parentAuthId.startsWith('temp_')) ? data.parentAuthId : null,
+            };
+            await apiClient.post(`/v1/capital-source/partners/${partnerId}/authorizations`, apiPayload);
             notifySuccess('Thành công', 'Đã thêm thành công!');
             setIsOpenModal(false);
             await fetchAuthor();
-        } catch (err:any){
-            notifyError(err.response?.data?.message || "Có lỗi xảy ra!");
+        } catch (err: any) {
+            notifyError("Lỗi", err.response?.data?.message || "Có lỗi xảy ra!");
         }
-    }
+    };
+
     return (
         <div className={styles.container}>
-            <div className={styles.title}>
-                <h2>DANH SÁCH ỦY QUYỀN/NGƯỜI ĐẠI DIỆN PHÁP LUẬT</h2>
+            <div style={{ display: 'flex', gap: '24px', borderBottom: '1px solid #e5e7eb', marginBottom: '20px', paddingBottom: '10px' }}>
+                <span 
+                    style={{ 
+                        fontWeight: activeSubTab === 'LEGAL_REP' ? '600' : '400', 
+                        color: activeSubTab === 'LEGAL_REP' ? '#2563eb' : '#6b7280', 
+                        cursor: 'pointer',
+                        borderBottom: activeSubTab === 'LEGAL_REP' ? '2px solid #2563eb' : 'none',
+                        paddingBottom: '8px'
+                    }}
+                    onClick={() => handleSubTabChange('LEGAL_REP')}
+                >
+                    Người đại diện pháp luật ({legalReps.length})
+                </span>
+                <span 
+                    style={{ 
+                        fontWeight: activeSubTab === 'AUTHORIZATION' ? '600' : '400', 
+                        color: activeSubTab === 'AUTHORIZATION' ? '#2563eb' : '#6b7280', 
+                        cursor: 'pointer',
+                        borderBottom: activeSubTab === 'AUTHORIZATION' ? '2px solid #2563eb' : 'none',
+                        paddingBottom: '8px'
+                    }}
+                    onClick={() => handleSubTabChange('AUTHORIZATION')}
+                >
+                    Ủy quyền ({authorizations.length})
+                </span>
             </div>
+
             <div className={styles.header}>
-                <Button variant="primary" onClick={() => setIsOpenModal(true)}>Thêm mới</Button>
+                {!isView && (
+                    <Button variant="primary" onClick={() => setIsOpenModal(true)}>
+                        + Thêm mới
+                    </Button>
+                )}
             </div>
-            {/*Table */}
+            
             <div className={styles.table}>
                 <Table 
-                    columns={columns}
+                    columns={activeSubTab === 'LEGAL_REP' ? legalRepColumns : authorizationColumns}
                     rowKey="id" 
-                    data={author}  
+                    data={currentData}  
                     isLoading={loading}  
-                    emptyText="Không có dữ liệu ủy quyền"            
+                    emptyText="Không có dữ liệu"            
                 />
             </div>
-            {isOpenModal && (
-                <Modal
-                    isOpen={isOpenModal}
-                    onClose={() => setIsOpenModal(false)}
-                    title="Thêm mới Ủy quyền"
-                    size="lg"
-                    footer={<>
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsOpenModal(false)}
-                        >
-                            Hủy
-                        </Button>
+            
+            {totalPages > 1 && (
+                <div className={styles.pagination}>
+                    <button 
+                        className={styles.pageBtn} 
+                        onClick={handlePrevPage} 
+                        disabled={currentPage === 1}
+                    >
+                        &lt;
+                    </button>
+                    <span className={styles.pageInfo}>
+                        Trang {currentPage} / {totalPages}
+                    </span>
+                    <button 
+                        className={styles.pageBtn} 
+                        onClick={handleNextPage} 
+                        disabled={currentPage === totalPages}
+                    >
+                        &gt;
+                    </button>
+                </div>
+            )}
 
-                        <Button
-                            variant="primary" 
-                            type="submit"
-                            form="authorization-form"
-                        >
-                            Lưu
-                        </Button>
-                    
-                    </>}
+            {isOpenModal && (
+                <Modal 
+                    isOpen={isOpenModal} 
+                    onClose={() => setIsOpenModal(false)}
+                    title={activeSubTab === 'LEGAL_REP' ? "Thêm mới người đại diện pháp luật" : "Thêm mới ủy quyền"}
+                    size="lg"
                 >
-                    <AuthorizationForm onSubmit={handleCreate} nextSeqId={nextSeqId}/>
+                    <AuthorizationForm 
+                        onSubmit={handleCreate} 
+                        onClose={() => setIsOpenModal(false)}
+                        nextSeqId={nextSeqId} 
+                        existingAuths={allAuths}
+                        legalReps={legalReps}
+                        authType={activeSubTab}
+                    />
                 </Modal>
             )}
-            {/*Phân trang */}
-            {/* {totalItems > 0 && ( */}
-                <div className={styles.pagination}>
-
-                    <div className={styles.paginationInfo}>
-                        Hiển thị {startIndex + 1} - {Math.min(startIndex + pageSize, totalItems)}
-                        {" "}của {totalItems} bản ghi
-                    </div>
-
-                    <div className={styles.paginationButtons}>
-
-                        <button
-                            className={styles.pageBtn}
-                            disabled={currentPage === 1}
-                            onClick={handlePrevPage}
-                        >
-                            &lt;
-                        </button>
-
-                        {Array.from(
-                            { length: Math.min(totalPages, 10) },
-                            (_, i) => i + 1
-                        ).map((page) => (
-                            <button
-                                key={page}
-                                className={`${styles.pageBtn} ${
-                                    currentPage === page ? styles.pageActive : ""
-                                }`}
-                                onClick={() => handlePageChange(page)}
-                            >
-                                {page}
-                            </button>
-                        ))}
-
-                        <button
-                            className={styles.pageBtn}
-                            disabled={currentPage === totalPages}
-                            onClick={handleNextPage}
-                        >
-                            &gt;
-                        </button>
-
-                    </div>
-
-                </div>
-            {/* )}  */}
         </div>
-    )
-} 
-	
+    );
+}

@@ -36,13 +36,13 @@ export default function LoginPage() {
 
       if (res.success && res.data) {
         if (res.data.departments && res.data.departments.length > 1) {
-          setAuth(res.data.accessToken);
+          setAuth(res.data.accessToken, undefined, undefined, undefined, undefined, res.data.refreshToken);
           router.push('/select-department');
         } else if (res.data.accessToken) {
           const payload = JSON.parse(
               atob(res.data.accessToken.split(".")[1])
           );
-          setAuth(res.data.accessToken, res.data.route, res.data.user?.id, res.data.user?.fullName, payload.roles);
+          setAuth(res.data.accessToken, res.data.route, res.data.user?.id, res.data.user?.fullName, payload.roles, res.data.refreshToken);
           if (payload.deptId) {
               setDeptId(payload.deptId);
           }

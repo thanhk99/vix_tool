@@ -4,12 +4,13 @@ import { useNotification } from '@/hooks/useNotification';
 import apiClient from '@/lib/api/client';
 import Button from '@/components/shared/Button/Button';
 import Input from '@/components/shared/Input/Input';
-import Select, {
-  SelectOption,
-} from '@/components/shared/Select/Select';
+import Select, { SelectOption } from '@/components/shared/Select/Select';
 
 interface CustommerTypeTabProps {
   partnerId: string;
+  isView?: boolean;
+  parentFormData?: any;
+  setParentFormData?: React.Dispatch<React.SetStateAction<any>>;
 }
 
 const CUS_TYPE_OPTIONS: SelectOption[] = [
@@ -65,18 +66,20 @@ const PROFESSIONAL_INVESTOR_OPTIONS: SelectOption[] = [
   },
 ];
 
-export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
+export default function CustommerTypeTab({ partnerId, isView, parentFormData, setParentFormData }: CustommerTypeTabProps) {
+  const isCreating = !partnerId;
   const [isEditing, setIsEditing] = useState(false);
   const { notifyError, notifySuccess, notifyWarning } = useNotification();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
   const [formData, setFormData] = useState({
-    cusType: '',
-    businessType: '',
-    professionalInvestor: false,
-    professionalStartDate: '',
-    professionalEndDate: '',
-    note: '',
+    cusType: parentFormData?.cusType || '',
+    businessType: parentFormData?.businessType || '',
+    professionalInvestor: parentFormData?.professionalInvestor || false,
+    professionalStartDate: parentFormData?.professionalStartDate || '',
+    professionalEndDate: parentFormData?.professionalEndDate || '',
+    note: parentFormData?.note || '',
   });
 
   const fetchCusType = async () => {
@@ -110,21 +113,37 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
       ...prev,
       [field]: value,
     }));
+    if (setParentFormData) {
+      setParentFormData((prev: any) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
   };
 
   const handleProfessionalChange = (value: 'Y' | 'N') => {
     const isProfessional = value === 'Y';
+    const startDate = isProfessional ? formData.professionalStartDate : '';
+    const endDate = isProfessional ? formData.professionalEndDate : '';
 
     setFormData((prev) => ({
       ...prev,
       professionalInvestor: isProfessional,
-      professionalStartDate: isProfessional ? prev.professionalStartDate : '',
-      professionalEndDate: isProfessional ? prev.professionalEndDate : '',
+      professionalStartDate: startDate,
+      professionalEndDate: endDate,
     }));
+
+    if (setParentFormData) {
+      setParentFormData((prev: any) => ({
+        ...prev,
+        professionalInvestor: isProfessional,
+        professionalStartDate: startDate,
+        professionalEndDate: endDate,
+      }));
+    }
   };
 
   const validateForm = (): boolean => {
-    // Nếu là nhà đầu tư chuyên nghiệp, bắt buộc phải có ngày bắt đầu và kết thúc
     if (formData.professionalInvestor) {
       if (!formData.professionalStartDate) {
         notifyWarning('Cảnh báo', 'Vui lòng nhập Ngày bắt đầu cho nhà đầu tư chuyên nghiệp');
@@ -140,13 +159,11 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
       }
     }
 
-    // Kiểm tra loại hình khách hàng
     if (!formData.cusType) {
       notifyWarning('Cảnh báo', 'Vui lòng chọn Phân loại khách hàng');
       return false;
     }
 
-    // Kiểm tra loại hình kinh tế
     if (!formData.businessType) {
       notifyWarning('Cảnh báo', 'Vui lòng chọn Loại hình kinh tế');
       return false;
@@ -187,26 +204,22 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
 
   const handleCancel = () => {
     setIsEditing(false);
-    fetchCusType(); // Reset về dữ liệu cũ
+    fetchCusType();
   };
 
-  // if (loading) {
-  //   return (
-  //     <div className={styles.loading}>
-  //       <span>Đang tải dữ liệu...</span>
-  //     </div>
-  //   );
-  // }
+  const canEdit = !isView && (isCreating || isEditing);
 
   return (
     <div className={styles.container}>
-      <div className={styles.title}>
-        <h2>THÔNG TIN LOẠI HÌNH KHÁCH HÀNG</h2>
-      </div>
-
       <div className={styles.header}>
-        {!isEditing ? (
-          <Button type="button" variant="primary" onClick={() => setIsEditing(true)}>
+        <h2 className={styles.title}>THÔNG TIN LOẠI HÌNH KHÁCH HÀNG</h2>
+        
+        {isCreating ? (
+          <Button type="button" variant="primary" disabled={true}>
+            Sửa
+          </Button>
+        ) : !isEditing ? (
+          <Button type="button" variant="primary" disabled={isView} onClick={() => setIsEditing(true)}>
             Sửa
           </Button>
         ) : (
@@ -228,10 +241,8 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
           <Select 
             options={CUS_TYPE_OPTIONS}
             value={formData.cusType}
-            disabled={!isEditing || saving}
-            onChange={(value) =>
-              handleChange('cusType', value)
-            }
+            disabled={!canEdit || saving}
+            onChange={(value) => handleChange('cusType', value)}
             placeholder="-- Chọn --"
             fullWidth
           />
@@ -244,31 +255,22 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
             type="date"
             className={styles.input}
             value={formData.professionalStartDate}
-            disabled={!isEditing || !formData.professionalInvestor || saving}
+            disabled={!canEdit || !formData.professionalInvestor || saving}
             onChange={(e) => handleChange('professionalStartDate', e.target.value)}
             fullWidth
           />
         </div>
-        
 
         {/* NĐT chuyên nghiệp */}
         <div className={styles.formGroup}>
           <label className={styles.label}>NĐT chuyên nghiệp</label>
           <Select
-              options={PROFESSIONAL_INVESTOR_OPTIONS}
-              value={
-                formData.professionalInvestor
-                  ? 'Y'
-                  : 'N'
-              }
-              disabled={!isEditing || saving}
-              onChange={(value) =>
-                handleProfessionalChange(
-                  value as 'Y' | 'N'
-                )
-              }
-              fullWidth
-            />
+            options={PROFESSIONAL_INVESTOR_OPTIONS}
+            value={formData.professionalInvestor ? 'Y' : 'N'}
+            disabled={!canEdit || saving}
+            onChange={(value) => handleProfessionalChange(value as 'Y' | 'N')}
+            fullWidth
+          />
         </div>
 
         {/* Ngày kết thúc */}
@@ -278,7 +280,7 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
             type="date"
             className={styles.input}
             value={formData.professionalEndDate}
-            disabled={!isEditing || !formData.professionalInvestor || saving}
+            disabled={!canEdit || !formData.professionalInvestor || saving}
             onChange={(e) => handleChange('professionalEndDate', e.target.value)}
             fullWidth
           />
@@ -290,10 +292,8 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
           <Select
             options={BUSINESS_TYPE_OPTIONS}
             value={formData.businessType}
-            disabled={!isEditing || saving}
-            onChange={(value) =>
-              handleChange('businessType', value)
-            }
+            disabled={!canEdit || saving}
+            onChange={(value) => handleChange('businessType', value)}
             placeholder="-- Chọn --"
             fullWidth
           />
@@ -306,7 +306,7 @@ export default function CustommerTypeTab({ partnerId }: CustommerTypeTabProps) {
             type="text"
             className={styles.input}
             value={formData.note}
-            disabled={!isEditing || saving}
+            disabled={!canEdit || saving}
             onChange={(e) => handleChange('note', e.target.value)}
             fullWidth
           />

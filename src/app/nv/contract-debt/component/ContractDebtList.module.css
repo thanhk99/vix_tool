@@ -1,10 +1,11 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
-  background-color: var(--white);
-  border-radius: 8px;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background-color: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .header {
@@ -73,4 +74,31 @@
   background-color: #ffebee;
   color: #d32f2f;
   border: 1px solid #ef9a9a;
+}
+
+.active {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.pending {
+  background-color: #ffedd5;
+  color: #c2410c;
+}
+
+.rejected {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.inactive {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.pendingDelete {
+  background-color: #ffe4e6;
+  color: #e11d48;
+  padding: 4px 8px;
+  border-radius: 12px;
 }

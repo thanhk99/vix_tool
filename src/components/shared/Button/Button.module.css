@@ -91,19 +91,19 @@
 .sm {
   padding: var(--space-1) var(--space-3);
   font-size: var(--font-size-xs);
-  height: 28px;
+  height: 24px;
 }
 
 .md {
   padding: var(--space-2) var(--space-4);
   font-size: var(--font-size-sm);
-  height: 36px;
+  height: 28px;
 }
 
 .lg {
   padding: var(--space-3) var(--space-6);
   font-size: var(--font-size-md);
-  height: 44px;
+  height: 36px;
 }
 
 /* Full width */

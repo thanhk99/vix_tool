@@ -14,15 +14,13 @@ export default function Sidebar() {
       { name: 'Dashboard', path: '/nv/dashboard', resource: ResourceCode.DASHBOARD },
       // Specific resources for NV could be added later
     { name: 'Phân quyền', path: '/nv/access-control', resource: ResourceCode.MANAGE_ROLE_GROUP },
-    { name: 'Quản lý đối tác', path: '/nv/partner', resource: ResourceCode.CAPITAL_PARTNER },
     { name: 'Danh mục và Cấu hình', path: '/nv/category-config', resource: ResourceCode.CAPITAL_CONFIG },
+    { name: 'Quản lý đối tác', path: '/nv/partner', resource: ResourceCode.CAPITAL_PARTNER },
     { name: 'Quản lý Khế ước Nhận Nợ', path: '/nv/contract-debt', resource: ResourceCode.CAPITAL_CONTRACT },
     { name: 'Quản lý Sự kiện Trả Nợ', path: '/nv/event-repayment', resource: ResourceCode.CAPITAL_REPAYMENT },
     { name: 'Quản lý Hạn mức tín dụng', path: '/nv/credit-limit', resource: ResourceCode.CAPITAL_LIMIT },
-    { name: 'Quản lý Giao dịch tài sản', path: '/nv/asset-transaction', resource: ResourceCode.CAPITAL_ASSET },
+    { name: 'Quản lý Tài sản đảm bảo', path: '/nv/asset-transaction', resource: ResourceCode.CAPITAL_ASSET },
     { name: 'Liên kết KUNN với giao dịch/tài sản', path: '/nv/kunn-transaction-link', resource: ResourceCode.CAPITAL_ASSET },
-    { name: 'Import Excel', path: '/nv/import-excel', resource: ResourceCode.CAPITAL_BATCH },
-    { name: 'Export Excel', path: '/nv/export-excel', resource: ResourceCode.CAPITAL_REPORT },
     { name: 'Lịch sử thay đổi', path: '/nv/history', resource: ResourceCode.AUDIT_LOG },
   ];
 
