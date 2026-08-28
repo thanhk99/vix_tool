@@ -1,30 +1,37 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { create } from 'zustand';
 import { NotificationItem, NotificationType } from '@/components/shared/Notification/Notification';
+
+interface NotificationStore {
+  notifications: NotificationItem[];
+  addNotification: (type: NotificationType, title: string, message?: string, duration?: number) => void;
+  removeNotification: (id: string) => void;
+}
 
 let notificationCounter = 0;
 
+export const useNotificationStore = create<NotificationStore>((set) => ({
+  notifications: [],
+  addNotification: (type, title, message, duration) => {
+    notificationCounter += 1;
+    const id = `notification-${notificationCounter}`;
+    set((state) => ({
+      notifications: [...state.notifications, { id, type, title, message, duration }]
+    }));
+  },
+  removeNotification: (id) => {
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== id)
+    }));
+  }
+}));
+
 export function useNotification() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-
-  const addNotification = useCallback(
-    (
-      type: NotificationType,
-      title: string,
-      message?: string,
-      duration?: number,
-    ) => {
-      notificationCounter += 1;
-      const id = `notification-${notificationCounter}`;
-      setNotifications((prev) => [...prev, { id, type, title, message, duration }]);
-    },
-    [],
-  );
-
-  const removeNotification = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  }, []);
+  const notifications = useNotificationStore((state) => state.notifications);
+  const addNotification = useNotificationStore((state) => state.addNotification);
+  const removeNotification = useNotificationStore((state) => state.removeNotification);
 
   const notifySuccess = useCallback(
     (title: string, message?: string) => addNotification('success', title, message),

@@ -1,0 +1,108 @@
+.title {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    margin: 0;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2);
+}
+
+.header .editing {
+    display: flex;
+    gap: var(--space-1);
+}
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 8px;
+  row-gap: 2px;
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+/* Mỗi field bên trong form */
+.form > div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  column-gap: 4px;
+  min-width: 0;
+}
+
+/* Label */
+.form label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Select và input */
+.form select,
+.form input {
+  width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  box-sizing: border-box;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+
+  background: var(--surface);
+  color: var(--text-primary);
+
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* Khi đang chỉnh sửa */
+.form select:not(:disabled),
+.form input:not(:disabled):not([type='date']) {
+  background: var(--surface);
+  cursor: pointer;
+}
+
+/* Focus */
+.form select:focus,
+.form input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(45, 108, 223, 0.08);
+}
+
+/* Trạng thái disabled - giống giao diện trong ảnh */
+.form select:disabled,
+.form input:disabled {
+  background: #f8fafc;
+  color: var(--text-secondary);
+  border-color: var(--border);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+/* Date */
+.form input[type='date'] {
+  color: var(--text-primary);
+}
+
+.form input[type='date']:disabled {
+  color: var(--text-secondary);
+}
+
+/* Placeholder */
+.form select:invalid,
+.form input::placeholder {
+  color: var(--text-secondary);
+}
+

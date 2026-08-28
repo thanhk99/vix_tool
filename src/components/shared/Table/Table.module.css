@@ -1,6 +1,7 @@
 .wrapper {
   width: 100%;
-  overflow-x: auto;
+  max-height: 100%;
+  overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background-color: var(--surface);
@@ -10,8 +11,9 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--font-size-sm);
+  font-size: 13px;
   color: var(--text-primary);
+  min-width: max-content;
 }
 
 .caption {
@@ -19,23 +21,41 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
-  padding: var(--space-4) var(--space-4) 0;
+  padding: var(--space-2) var(--space-2) 0;
   caption-side: top;
 }
 
 .thead {
-  background-color: var(--background);
-  border-bottom: 1px solid var(--border);
+  /* removed background-color from here since it's moved to th for sticky context */
 }
 
 .th {
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+  padding: var(--space-2) var(--space-2);
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   white-space: nowrap;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--surface);
+}
+
+.th::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  border-bottom: 1px solid var(--border);
+}
+
+.th:last-child {
+  border-right: none;
 }
 
 .tr {
@@ -51,14 +71,41 @@
   background-color: var(--background);
 }
 
+.selectedRow {
+  background-color: #dbeafe !important;  /* Màu xanh nhạt */
+  border-left: 3px solid #2563eb;        /* Viền trái xanh */
+}
+
 .td {
-  padding: var(--space-3) var(--space-4);
+  padding: 4px 8px;
   color: var(--text-primary);
   vertical-align: middle;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.td:nth-child(even) {
+  background-color: #d8dadc;
+}
+
+.th:nth-child(even) {
+  background-color: #d8dadc;
+}
+
+.tr:hover .td {
+  background-color: var(--background);
+}
+
+.selectedRow .td {
+  background-color: #dbeafe !important;
+}
+
+.td:last-child {
+  border-right: none;
 }
 
 .stateCell {
-  padding: var(--space-10) var(--space-4);
+  padding: var(--space-4) var(--space-2);
   text-align: center;
   color: var(--text-secondary);
 }

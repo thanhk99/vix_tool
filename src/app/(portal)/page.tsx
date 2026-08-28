@@ -11,6 +11,7 @@ import styles from './page.module.css';
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const setDeptId = useAuthStore((state) => state.setDeptId);
   const token = useAuthStore((state) => state.token);
   const route = useAuthStore((state) => state.route);
 
@@ -35,10 +36,16 @@ export default function LoginPage() {
 
       if (res.success && res.data) {
         if (res.data.departments && res.data.departments.length > 1) {
-          setAuth(res.data.accessToken);
+          setAuth(res.data.accessToken, undefined, undefined, undefined, undefined, res.data.refreshToken);
           router.push('/select-department');
         } else if (res.data.accessToken) {
-          setAuth(res.data.accessToken, res.data.route);
+          const payload = JSON.parse(
+              atob(res.data.accessToken.split(".")[1])
+          );
+          setAuth(res.data.accessToken, res.data.route, res.data.user?.id, res.data.user?.fullName, payload.roles, res.data.refreshToken);
+          if (payload.deptId) {
+              setDeptId(payload.deptId);
+          }
           router.push(res.data.route ? '/' + res.data.route : '/dashboard');
         }
       } else {
@@ -47,6 +54,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Đã xảy ra lỗi. Vui lòng thử lại.';
+      console.error('Login error:', message);
       setErrorMessage(message);
     } finally {
       setIsLoading(false);

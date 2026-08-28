@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from './Header.module.css';
 
 export default function Header() {
-  const { clearAuth } = useAuthStore();
+  const { clearAuth, fullName } = useAuthStore();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -17,7 +17,7 @@ export default function Header() {
     <header className={styles.header}>
       <div className={styles.userInfo}>
         <span className={styles.greeting}>
-          Xin chào, <span className={styles.name}>Giám đốc</span>
+          Xin chào, <span className={styles.name}>{fullName || 'Giám đốc'}</span>
         </span>
         <button onClick={handleLogout} className={styles.logoutBtn}>
           Đăng xuất

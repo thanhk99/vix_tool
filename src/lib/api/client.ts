@@ -8,20 +8,40 @@ const apiClient = axios.create({
   },
 });
 
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
+
 apiClient.interceptors.request.use(
   (config) => {
-    // We are in browser context
-    if (typeof window !== 'undefined') {
-      const token = useAuthStore.getState().token;
+    if (typeof window !== "undefined") {
+      const { token, deptId } = useAuthStore.getState();
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers.set(
+          "Authorization",
+          `Bearer ${token}`
+        );
       }
 
-      const deptId = useAuthStore.getState().deptId;
       if (deptId) {
-        config.headers['X-Department-Id'] = deptId;
+        config.headers.set(
+          "X-Department-Id",
+          deptId
+        );
       }
     }
+
     return config;
   },
   (error) => {
@@ -33,14 +53,74 @@ apiClient.interceptors.response.use(
   (response) => {
     return response.data;
   },
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      // Handle logout or token refresh here
-      useAuthStore.getState().clearAuth();
-      if (typeof window !== 'undefined') {
-        window.location.href = `http://${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'company.local'}:3000`;
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise(function(resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers['Authorization'] = 'Bearer ' + token;
+          return apiClient(originalRequest);
+        }).catch(err => {
+          return Promise.reject(err);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const { refreshToken } = useAuthStore.getState();
+
+      if (!refreshToken) {
+        useAuthStore.getState().clearAuth();
+        if (typeof window !== 'undefined') {
+          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN;
+          if (baseDomain && window.location.hostname !== baseDomain) {
+            window.location.href = `${window.location.protocol}//${baseDomain}${window.location.port ? ':' + window.location.port : ''}`;
+          } else {
+            window.location.href = '/';
+          }
+        }
+        return Promise.reject(error.response?.data || error);
+      }
+
+      try {
+        const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'}/v1/identity/auth/refresh-token`, { refreshToken });
+        
+        // Extract new tokens based on expected API response format
+        const newAccessToken = data?.data?.accessToken || data?.accessToken;
+        const newRefreshToken = data?.data?.refreshToken || data?.refreshToken;
+
+        if (!newAccessToken) {
+           throw new Error('Không nhận được access token mới từ server');
+        }
+
+        useAuthStore.getState().setTokens(newAccessToken, newRefreshToken);
+        processQueue(null, newAccessToken);
+        
+        originalRequest.headers['Authorization'] = 'Bearer ' + newAccessToken;
+        return apiClient(originalRequest);
+      } catch (err: any) {
+        processQueue(err, null);
+        useAuthStore.getState().clearAuth();
+        
+        if (typeof window !== 'undefined') {
+          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN;
+          if (baseDomain && window.location.hostname !== baseDomain) {
+            window.location.href = `${window.location.protocol}//${baseDomain}${window.location.port ? ':' + window.location.port : ''}`;
+          } else {
+            window.location.href = '/';
+          }
+        }
+        
+        return Promise.reject(err.response?.data || err);
+      } finally {
+        isRefreshing = false;
       }
     }
+
     return Promise.reject(error.response?.data || error);
   }
 );

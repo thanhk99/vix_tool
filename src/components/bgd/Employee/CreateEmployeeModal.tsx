@@ -5,7 +5,7 @@ import Modal from '@/components/shared/Modal/Modal';
 import Input from '@/components/shared/Input/Input';
 import Select, { SelectOption } from '@/components/shared/Select/Select';
 import Button from '@/components/shared/Button/Button';
-import { hrApi, departmentApi } from '@/lib/api/hr.api';
+import { hrApi, departmentApi} from '@/lib/api/hr.api';
 import { CreateEmployeeRequest } from '@/types/hr.types';
 import styles from './CreateEmployeeModal.module.css';
 
@@ -23,11 +23,23 @@ const GENDER_OPTIONS: SelectOption[] = [
   { label: 'Khác', value: 'OTHER' },
 ];
 
+const ROLE_OPTIONS: SelectOption[] = [
+  {
+    label: 'Trưởng phòng',
+    value: 'DEPT_ADMIN',
+  },
+  {
+    label: 'Nhân viên',
+    value: 'MEMBER',
+  },
+];
+
 const INITIAL_FORM: CreateEmployeeRequest = {
   email: '',
   fullName: '',
   password: '',
   departmentId: '',
+  role: 'MEMBER',
 };
 
 export default function CreateEmployeeModal({
@@ -40,7 +52,6 @@ export default function CreateEmployeeModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<CreateEmployeeRequest>(INITIAL_FORM);
   const [deptOptions, setDeptOptions] = useState<SelectOption[]>([]);
-
   /* Load department list when modal opens */
   useEffect(() => {
     if (!isOpen) return;
@@ -75,7 +86,15 @@ export default function CreateEmployeeModal({
 
     setIsSubmitting(true);
     try {
-      const res = await hrApi.createEmployee(formData);
+      const payload: CreateEmployeeRequest = {
+        ...formData,
+        email: formData.email.trim(),
+        fullName: formData.fullName.trim(),
+        password: formData.password?.trim(),
+        role: formData.role || 'MEMBER',
+        phone: formData.phone?.trim() || undefined,
+      };
+      const res = await hrApi.createEmployee(payload);
       if (res.success) {
         notifySuccess('Thành công', 'Đã thêm nhân viên mới');
         onSuccess();
@@ -102,7 +121,7 @@ export default function CreateEmployeeModal({
           <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
             Hủy
           </Button>
-          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
+          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting} >
             Tạo nhân viên
           </Button>
         </>
@@ -156,6 +175,23 @@ export default function CreateEmployeeModal({
             placeholder="-- Chọn phòng ban --"
             required
             fullWidth
+          />
+        </div>
+
+        <div className={styles.row}>
+          <Select
+              label="Chức vụ"
+              options={ROLE_OPTIONS}
+              value={formData.role ?? ""}
+              onChange={(value) =>
+                  setFormData((prev) => ({
+                      ...prev,
+                      role: value as "DEPT_ADMIN" | "MEMBER",
+                  }))
+              }
+              placeholder="-- Chọn chức vụ --"
+              required
+              fullWidth
           />
         </div>
 

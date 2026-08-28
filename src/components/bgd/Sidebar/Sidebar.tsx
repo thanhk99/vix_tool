@@ -11,6 +11,7 @@ export default function Sidebar() {
     { name: 'Tổng quan', path: '/bgd' },
     { name: 'Phòng ban', path: '/bgd/departments' },
     { name: 'Nhân sự', path: '/bgd/hr' },
+    { name: 'Phân quyền', path: '/bgd/access-control' },
     { name: 'Duyệt văn bản', path: '/bgd/documents' },
     { name: 'Báo cáo', path: '/bgd/reports' },
     { name: 'Cuộc họp', path: '/bgd/meetings' },

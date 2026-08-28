@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './Modal.module.css';
+import { X } from 'lucide-react';
 
 type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title?: string;
+  title?: React.ReactNode;
   size?: ModalSize;
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -22,13 +24,13 @@ export default function Modal({
   size = 'md',
   children,
   footer,
-  closeOnOverlayClick = true,
+  closeOnOverlayClick = false,
 }: ModalProps) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (closeOnOverlayClick && event.key === 'Escape') onClose();
     },
-    [onClose],
+    [onClose, closeOnOverlayClick],
   );
 
   useEffect(() => {
@@ -41,7 +43,12 @@ export default function Modal({
     };
   }, [isOpen, handleKeyDown]);
 
-  if (!isOpen) return null;
+  const [mounted, setMounted] = React.useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   function handleOverlayClick(event: React.MouseEvent<HTMLDivElement>) {
     if (closeOnOverlayClick && event.target === event.currentTarget) {
@@ -49,7 +56,7 @@ export default function Modal({
     }
   }
 
-  return (
+  const modalContent = (
     <div
       className={styles.overlay}
       onClick={handleOverlayClick}
@@ -70,7 +77,7 @@ export default function Modal({
               onClick={onClose}
               aria-label="Đóng modal"
             >
-              ✕
+              <X size={20} />
             </button>
           </div>
         )}
@@ -78,9 +85,10 @@ export default function Modal({
         {/* Body */}
         <div className={styles.body}>{children}</div>
 
-        {/* Footer */}
         {footer && <div className={styles.footer}>{footer}</div>}
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

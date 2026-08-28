@@ -16,7 +16,15 @@ export enum ResourceCode {
   REPORT = 'REPORT',
   PAYROLL = 'PAYROLL',
   MEETING = 'MEETING',
-  MANAGE_ROLE_GROUP = 'MANAGE_ROLE_GROUP'
+  MANAGE_ROLE_GROUP = 'MANAGE_ROLE_GROUP',
+  CAPITAL_CONFIG = 'CAPITAL_CONFIG',
+  CAPITAL_PARTNER = 'CAPITAL_PARTNER',
+  CAPITAL_LIMIT = 'CAPITAL_LIMIT',
+  CAPITAL_CONTRACT = 'CAPITAL_CONTRACT',
+  CAPITAL_REPAYMENT = 'CAPITAL_REPAYMENT',
+  CAPITAL_ASSET = 'CAPITAL_ASSET',
+  CAPITAL_REPORT = 'CAPITAL_REPORT',
+  CAPITAL_BATCH = 'CAPITAL_BATCH'
 }
 
 export interface PermissionDto {
@@ -33,4 +41,11 @@ export interface RoleGroupResponse {
   createdAt: string;
   updatedAt: string;
   permissions: PermissionDto[];
+}
+
+export interface CreateRoleGroupRequest {
+    name: string;
+    description: string;
+    permissions: PermissionDto[];
+    active: boolean;
 }
