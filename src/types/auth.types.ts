@@ -2,7 +2,7 @@ export interface UserInfo {
   id: string;
   email: string;
   fullName: string;
-  companyId: string;
+  // companyId: string;
   currentDepartmentId: string;
   roles: string[];
 }
@@ -30,3 +30,11 @@ export interface LoginRequest {
 export interface SelectDepartmentRequest {
   deptId: string;
 }
+
+export interface ApiRespone<T>{
+  success: boolean;
+  message: string;
+  data: T
+}
+
+

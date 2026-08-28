@@ -76,6 +76,10 @@ export default function HrPage() {
     },
     { key: 'email', title: 'Email' },
     {
+      key: 'departmentName',
+      title: 'Phòng ban',
+    },
+    {
       key: 'status',
       title: 'Trạng thái',
       width: '140px',
@@ -184,8 +188,6 @@ export default function HrPage() {
         notifySuccess={notifySuccess}
       />
 
-      {/* Notification Container */}
-      <NotificationContainer items={notifications} onClose={removeNotification} />
     </div>
   );
 }

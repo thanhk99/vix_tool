@@ -1,0 +1,2 @@
+export const formatCurrency = (val: number | string | undefined | null) => { if (!val) return '0'; return Number(val).toLocaleString('vi-VN'); };
+export const formatDate = (val: string) => { if (!val) return '-'; return new Date(val).toLocaleDateString('vi-VN'); };

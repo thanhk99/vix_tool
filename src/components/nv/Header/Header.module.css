@@ -1,0 +1,110 @@
+.header {
+  height: 64px;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+}
+
+.userInfo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  z-index: 1001;
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+.userProfile:hover {
+  background-color: var(--background);
+}
+
+.arrow {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: var(--space-2);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1002;
+}
+
+.dropdownItem {
+  background: transparent;
+  border: none;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.dropdownItem:hover {
+  background-color: var(--background);
+}
+
+.logoutText {
+  color: var(--danger);
+  border-top: 1px solid var(--border);
+}
+
+.logoutText:hover {
+  background-color: #fef2f2;
+}
+
+.greeting {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.logoutBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.logoutBtn:hover {
+  background-color: var(--background);
+  color: var(--danger);
+  border-color: var(--danger);
+}

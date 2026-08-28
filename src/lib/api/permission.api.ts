@@ -11,5 +11,15 @@ export const permissionApi = {
     return apiClient.get('/v1/permissions/role-groups');
   },
 
-  // other api methods can be added later
+  getMyPermissions: async (): Promise<ApiResponse<PermissionDto[]>> => {
+    return apiClient.get('/v1/permissions/my-permissions');
+  },
+
+  getUserPermissions: async (userId: string): Promise<ApiResponse<PermissionDto[]>> => {
+    return apiClient.get(`/v1/permissions/users/${userId}`);
+  },
+
+  saveUserPermissions: async (userId: string, permissions: PermissionDto[]): Promise<ApiResponse<void>> => {
+    return apiClient.post(`/v1/permissions/users/${userId}`, permissions);
+  },
 };

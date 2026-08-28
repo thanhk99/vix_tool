@@ -82,3 +82,45 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+/* bgd/hr/page.module.css */
+
+.managerBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.employeeBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.activeBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: #d1fae5;
+  color: #065f46;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.inactiveBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 500;
+  font-size: 12px;
+}

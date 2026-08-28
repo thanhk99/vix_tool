@@ -53,6 +53,7 @@ export default function Input({
         aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
         required={required}
         {...rest}
+        value={rest.value === null ? '' : rest.value}
       />
       {error && (
         <span id={`${inputId}-error`} className={styles.errorText} role="alert">

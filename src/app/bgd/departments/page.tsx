@@ -207,7 +207,6 @@ export default function DepartmentsPage() {
         </form>
       </Modal>
 
-      <NotificationContainer items={notifications} onClose={removeNotification} />
     </div>
   );
 }

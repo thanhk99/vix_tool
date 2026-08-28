@@ -7,9 +7,12 @@ export interface EmployeeListItemResponse {
   positionId: string | null;
   status: string;
   avatarUrl: string | null;
+  role?: 'DEPT_ADMIN' | 'MEMBER';
+
 }
 
 export interface EmployeeDetailResponse extends EmployeeListItemResponse {
+  role: 'DEPT_ADMIN' | 'MEMBER';
   phone: string | null;
   gender: string | null;
   birthDate: string | null; // ISO Date string
@@ -36,7 +39,7 @@ export interface CreateEmployeeRequest {
   email: string;
   fullName: string;
   password?: string;
-  departmentId: string;
+  departmentId?: string;
   positionId?: string;
   phone?: string;
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
@@ -47,6 +50,7 @@ export interface CreateEmployeeRequest {
   idCardIssuedPlace?: string;
   joinDate?: string;
   avatarUrl?: string;
+  role?: 'DEPT_ADMIN' | 'MEMBER';
 }
 
 export interface UpdateEmployeeRequest {
@@ -61,6 +65,7 @@ export interface UpdateEmployeeRequest {
   idCardIssuedPlace?: string;
   joinDate?: string;
   avatarUrl?: string;
+  role?: 'DEPT_ADMIN' | 'MEMBER'
 }
 
 export interface TransferDepartmentRequest {
@@ -84,3 +89,4 @@ export interface CreateDepartmentRequest {
   description?: string;
   managerId?: string;
 }
+

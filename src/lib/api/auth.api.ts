@@ -10,4 +10,8 @@ export const authApi = {
   selectDepartment: async (data: SelectDepartmentRequest): Promise<ApiResponse<AuthResponse>> => {
     return apiClient.post('/v1/identity/auth/select-department', data);
   },
+
+  getMe: async (): Promise<ApiResponse<AuthResponse['user']>> => {
+    return apiClient.get('/v1/identity/auth/me');
+  },
 };
