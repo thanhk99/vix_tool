@@ -1,17 +1,18 @@
 # ==============================================================================
 # 1. BASE IMAGE
 # ==============================================================================
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 
 # ==============================================================================
 # 2. DEPENDENCIES STAGE (Install packages)
 # ==============================================================================
 FROM base AS deps
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm config set strict-ssl false && npm ci
 
 # ==============================================================================
 # 3. BUILD STAGE (Compile Next.js standalone application)
@@ -19,10 +20,11 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build arguments for frontend public variables
 ARG NEXT_PUBLIC_API_URL
@@ -41,14 +43,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs && \
+    useradd --system --uid 1001 -g nodejs nextjs
 
 COPY --from=builder /app/public ./public
 
 # Set correct permissions for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+RUN mkdir .next && \
+    chown nextjs:nodejs .next
 
 # Copy standalone output and static assets
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

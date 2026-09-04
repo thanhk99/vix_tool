@@ -5,6 +5,13 @@ import { useAuthStore } from '@/stores/auth.store';
 import { DepartmentInfo } from '@/types/auth.types';
 import apiClient from '@/lib/api/client';
 
+function getSafeRoute(r?: string | null): string {
+  if (!r) return '/dashboard';
+  const clean = r.startsWith('/') ? r.slice(1) : r;
+  if (clean === 'director') return '/bgd';
+  return '/' + clean;
+}
+
 export default function SelectDepartmentPage() {
   const [departments, setDepartments] = useState<DepartmentInfo[]>([]);
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -26,13 +33,12 @@ export default function SelectDepartmentPage() {
       const res = await authApi.selectDepartment({ deptId });
       if (res.success && res.data) {
         const payload = JSON.parse(atob(res.data.accessToken.split(".")[1]));
-        setAuth(res.data.accessToken, res.data.route, res.data?.user?.id, res.data?.user?.fullName, payload.roles, res.data.refreshToken);
+        const safeRoute = getSafeRoute(res.data.route);
+        setAuth(res.data.accessToken, safeRoute.slice(1), res.data?.user?.id, res.data?.user?.fullName, payload.roles, res.data.refreshToken);
         if (payload.deptId) {
             setDeptId(payload.deptId);
         }
-        if (res.data.route) {
-          window.location.href = '/' + res.data.route;
-        }
+        window.location.href = safeRoute;
       } else {
         console.error('Failed to select department:', res.message);
       }

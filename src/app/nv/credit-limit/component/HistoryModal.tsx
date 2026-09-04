@@ -7,7 +7,9 @@ import Modal from '@/components/shared/Modal/Modal';
 import Button from '@/components/shared/Button/Button';
 import Table, { TableColumn } from '@/components/shared/Table/Table';
 import Input from '@/components/shared/Input/Input';
+import { formatDate } from '@/utils/format';
 import styles from './CreditLimitTable.module.css';
+
 import apiClient from '@/lib/api/client';
 
 interface HistoryModalProps {
@@ -185,7 +187,7 @@ export default function HistoryModal({ isOpen, onClose }: HistoryModalProps) {
       align: 'center', 
       render: (val, record) => {
         const d = val || record.createdAt;
-        return d ? new Date(d as string).toLocaleDateString('en-GB') : '-';
+        return formatDate(d as string);
       }
     },
     { key: 'contactNo', title: 'Số HĐ hạn mức', align: 'center', render: (val) => <strong>{val ? String(val) : '-'}</strong> },

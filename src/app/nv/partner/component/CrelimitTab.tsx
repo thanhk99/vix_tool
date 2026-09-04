@@ -9,6 +9,8 @@ import Input from "@/components/shared/Input/Input";
 import Select from "@/components/shared/Select/Select";
 import Modal from "@/components/shared/Modal/Modal";
 import { getStatusDisplay } from "@/constants/status";
+import { formatDate } from "@/utils/format";
+
 
 interface CrelimitTabProps {
     partnerId: string;
@@ -260,18 +262,12 @@ interface CrelimitTabProps {
     {
         key: "startDate",
         title: "Ngày bắt đầu",
-        render: (value) =>
-            value
-                ? new Date(value as string).toLocaleDateString("vi-VN")
-                : "-",
+        render: (value) => formatDate(value as string),
     },
     {
         key: "endDate",
         title: "Ngày hết hạn",
-        render: (value) =>
-            value
-                ? new Date(value as string).toLocaleDateString("vi-VN")
-                : "-",
+        render: (value) => formatDate(value as string),
     },
     {
         key: "status",

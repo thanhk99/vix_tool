@@ -10,6 +10,8 @@ import Select from "@/components/shared/Select/Select";
 import Modal from "@/components/shared/Modal/Modal";
 import { getStatusDisplay } from "@/constants/status";
 import { ArrowLeft, Check, X, Trash2, RefreshCw } from "lucide-react";
+import { formatDate } from "@/utils/format";
+
 
 interface ContractCreditLimitProps {
     contractId: string;
@@ -259,12 +261,12 @@ export default function ContractCreditLimit({ contractId, onBack }: ContractCred
         {
             key: "startDate",
             title: "Ngày bắt đầu",
-            render: (value) => value ? new Date(value as string).toLocaleDateString("vi-VN") : "-",
+            render: (value) => formatDate(value as string),
         },
         {
             key: "endDate",
             title: "Ngày hết hạn",
-            render: (value) => value ? new Date(value as string).toLocaleDateString("vi-VN") : "-",
+            render: (value) => formatDate(value as string),
         },
         {
             key: "status",

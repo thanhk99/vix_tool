@@ -12,6 +12,8 @@ import styles from './ContractDebtForm.module.css';
 import apiClient from '@/lib/api/client';
 import { useNotification } from '@/hooks/useNotification';
 import { getStatusDisplay } from '@/constants/status';
+import { formatDate } from '@/utils/format';
+
 
 interface ContractDebtFormProps {
   id?: string;
@@ -364,11 +366,11 @@ export default function ContractDebtForm({ id, mode = 'create' }: ContractDebtFo
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Ngày BĐ hạn mức</span>
-            <Input disabled={mode === 'view' || true} value={selectedLimit?.startDate ? new Date(selectedLimit.startDate).toLocaleDateString('vi-VN') : '-'} />
+            <Input disabled={mode === 'view' || true} value={formatDate(selectedLimit?.startDate)} />
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Ngày KT hạn mức</span>
-            <Input disabled={mode === 'view' || true} value={selectedLimit?.endDate ? new Date(selectedLimit.endDate).toLocaleDateString('vi-VN') : '-'} />
+            <Input disabled={mode === 'view' || true} value={formatDate(selectedLimit?.endDate)} />
           </div>
           <div className={styles.field}>
             <span className={styles.label}>Số HĐ khế ước <span className={styles.required}>*</span></span>

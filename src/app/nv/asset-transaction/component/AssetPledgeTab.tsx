@@ -11,6 +11,8 @@ import { useNotification } from '@/hooks/useNotification';
 import { Plus, Check, X, Search, Unlock, ShieldAlert, FileText } from 'lucide-react';
 import PledgeFormModal from './PledgeFormModal';
 import ReleaseFormModal from './ReleaseFormModal';
+import { formatDate } from '@/utils/format';
+
 
 export default function AssetPledgeTab() {
     const [subTab, setSubTab] = useState<'PLEDGE' | 'RELEASE'>('PLEDGE');
@@ -207,7 +209,7 @@ export default function AssetPledgeTab() {
             key: "pledgeDate",
             title: "Ngày CC",
             width: 100,
-            render: (val: any) => String(val || '-')
+            render: (val: any) => formatDate(val)
         },
         {
             key: "pledgeQty",
@@ -309,7 +311,7 @@ export default function AssetPledgeTab() {
             key: "releaseDate",
             title: "Ngày giải tỏa",
             width: 100,
-            render: (val: any) => String(val || '-')
+            render: (val: any) => formatDate(val)
         },
         {
             key: "releaseQty",

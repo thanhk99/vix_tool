@@ -13,6 +13,10 @@ import { Image as ImageIcon, FileText, ExternalLink, Download } from "lucide-rea
 import styles from "./SignatureTab.module.css";
 import { signatureApi } from "@/lib/api/signature.api";
 import { sealApi } from "@/lib/api/seal.api";
+import { formatDate } from "@/utils/format";
+import { useAuthStore } from "@/stores/auth.store";
+
+
 
 export interface UnifiedItem {
     id: string;
@@ -110,7 +114,7 @@ export default function SignatureAndSealTab({ partnerId, isView, pendingItems, s
                     effectiveDate: s.effectiveDate,
                     expiryDate: s.expiryDate,
                     status: s.status,
-                    updatedBy: s.updatedBy || 'system',
+                    updatedBy: s.updatedByName || s.updatedBy || '-',
                     isSignature: true,
                     documentId: s.documentId
                 });
@@ -126,7 +130,7 @@ export default function SignatureAndSealTab({ partnerId, isView, pendingItems, s
                     effectiveDate: s.effectiveDate,
                     expiryDate: s.expiryDate,
                     status: s.status,
-                    updatedBy: s.updatedBy || 'system',
+                    updatedBy: s.updatedByName || s.updatedBy || '-',
                     isSignature: false
                 });
             });
@@ -290,6 +294,11 @@ export default function SignatureAndSealTab({ partnerId, isView, pendingItems, s
             return;
         }
 
+        if (formData.expiryDate && formData.expiryDate <= formData.effectiveDate) {
+            notifyError("Lỗi", "Ngày hết hạn phải lớn hơn ngày hiệu lực");
+            return;
+        }
+
         const isSig = selectedType !== "SEAL";
         const typeLabel = selectedType === 'DIGITAL' ? 'Chữ ký số' : (selectedType === 'ELECTRONIC' ? 'Chữ ký điện tử' : 'Dấu');
 
@@ -323,7 +332,7 @@ export default function SignatureAndSealTab({ partnerId, isView, pendingItems, s
                     effectiveDate: formData.effectiveDate,
                     expiryDate: formData.expiryDate || "",
                     status: formData.status,
-                    updatedBy: "user",
+                    updatedBy: useAuthStore.getState().fullName || "user",
                     isSignature: isSig,
                     file: selectedFile || undefined,
                     fileUrl: objUrl
@@ -447,12 +456,12 @@ export default function SignatureAndSealTab({ partnerId, isView, pendingItems, s
         {
             key: "effectiveDate",
             title: "Ngày hiệu lực",
-            render: (val) => val ? new Date(val as string).toLocaleDateString('vi-VN') : "-"
+            render: (val) => formatDate(val as string)
         },
         {
             key: "expiryDate",
             title: "Ngày hết hạn",
-            render: (val) => val ? new Date(val as string).toLocaleDateString('vi-VN') : "-"
+            render: (val) => formatDate(val as string)
         },
         {
             key: "status",
@@ -477,7 +486,7 @@ export default function SignatureAndSealTab({ partnerId, isView, pendingItems, s
                 );
             }
         },
-        { key: "updatedBy", title: "Người cập nhật" },
+        { key: "updatedBy", title: "Người thực hiện" },
         {
             key: "actions",
             title: "Thao tác",
@@ -596,6 +605,7 @@ export default function SignatureAndSealTab({ partnerId, isView, pendingItems, s
                         <Input 
                             type="date"
                             value={formData.expiryDate}
+                            min={formData.effectiveDate || undefined}
                             onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
                         />
                     </div>

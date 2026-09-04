@@ -13,6 +13,8 @@ import apiClient from "@/lib/api/client";
 import { getStatusDisplay } from "@/constants/status";
 import { Eye, FileText, Image as ImageIcon } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
+import { formatDate } from "@/utils/format";
+
 
 const INITIAL_FORM: SealFormData = {
   sealFileName: "",
@@ -139,8 +141,8 @@ export default function SealTab({ partnerId, isView }: { partnerId: string; isVi
       notifyWarning("Cảnh báo", "Vui lòng chọn ngày hiệu lực");
       return false;
     }
-    if (formData.expiryDate && new Date(formData.expiryDate) <= new Date(formData.effectiveDate)) {
-      notifyWarning("Cảnh báo", "Ngày hết hạn phải sau ngày hiệu lực");
+    if (formData.expiryDate && formData.expiryDate <= formData.effectiveDate) {
+      notifyWarning("Cảnh báo", "Ngày hết hạn phải lớn hơn ngày hiệu lực");
       return false;
     }
     if (!formData.status) {
@@ -220,10 +222,12 @@ export default function SealTab({ partnerId, isView }: { partnerId: string; isVi
     {
       key: "effectiveDate",
       title: "Ngày hiệu lực",
+      render: (value) => formatDate(value as string),
     },
     {
       key: "expiryDate",
       title: "Ngày hết hạn",
+      render: (value) => formatDate(value as string),
     },
     {
       key: "status",

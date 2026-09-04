@@ -8,6 +8,13 @@ import Button from '@/components/shared/Button/Button';
 import Input from '@/components/shared/Input/Input';
 import styles from './page.module.css';
 
+function getSafeRoute(r?: string | null): string {
+  if (!r) return '/dashboard';
+  const clean = r.startsWith('/') ? r.slice(1) : r;
+  if (clean === 'director') return '/bgd';
+  return '/' + clean;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -17,7 +24,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (token) {
-      router.replace(route ? '/' + route : '/dashboard');
+      router.replace(getSafeRoute(route));
     }
   }, [token, route, router]);
 
@@ -42,11 +49,12 @@ export default function LoginPage() {
           const payload = JSON.parse(
               atob(res.data.accessToken.split(".")[1])
           );
-          setAuth(res.data.accessToken, res.data.route, res.data.user?.id, res.data.user?.fullName, payload.roles, res.data.refreshToken);
+          const safeRoute = getSafeRoute(res.data.route);
+          setAuth(res.data.accessToken, safeRoute.slice(1), res.data.user?.id, res.data.user?.fullName, payload.roles, res.data.refreshToken);
           if (payload.deptId) {
               setDeptId(payload.deptId);
           }
-          router.push(res.data.route ? '/' + res.data.route : '/dashboard');
+          router.push(safeRoute);
         }
       } else {
         setErrorMessage('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');

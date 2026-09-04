@@ -8,6 +8,8 @@ import styles from "./AssetTab.module.css";
 import Table, {TableColumn,} from "@/components/shared/Table/Table";
 import Button from "@/components/shared/Button/Button";
 import AssetFormModal from "@/components/shared/AssetFormModal/AssetFormModal";
+import { formatDate } from "@/utils/format";
+
 
 interface AssetTabProps {
     partnerId: string;
@@ -117,26 +119,17 @@ export default function AssetTab({ partnerId, isView }: AssetTabProps) {
         {
             key: "issueDate",
             title: "Ngày phát hành",
-            render: (value) =>
-                value
-                    ? new Date(value as string).toLocaleDateString("vi-VN")
-                    : "-",
+            render: (value) => formatDate(value as string),
         },
         {
             key: "maturityDate",
             title: "Ngày đáo hạn",
-            render: (value) =>
-                value
-                    ? new Date(value as string).toLocaleDateString("vi-VN")
-                    : "-",
+            render: (value) => formatDate(value as string),
         },
         {
             key: "callDate",
             title: "Ngày mua lại trước hạn",
-            render: (value) =>
-                value
-                    ? new Date(value as string).toLocaleDateString("vi-VN")
-                    : "-",
+            render: (value) => formatDate(value as string),
         },
         {
             key: "couponType",

@@ -7,6 +7,8 @@ import { PartnerDocumentItem } from "@/types/funding.types";
 import { useEffect, useState, useRef } from "react";
 import styles from "./PartnerList.module.css";
 import Button from "@/components/shared/Button/Button";
+import { formatDateTime } from "@/utils/format";
+
 
 export interface UnifiedDocumentItem extends PartnerDocumentItem {
     file?: File;
@@ -151,7 +153,7 @@ export default function DocumentTab({ partnerId, isView, pendingItems, setPendin
         {
             key: "createdAt",
             title: "Ngày tải lên",
-            render: (value) => value ? new Date(value as string).toLocaleString("vi-VN") : "-",
+            render: (value) => formatDateTime(value as string),
         },
         {
             key: "uploadedBy",

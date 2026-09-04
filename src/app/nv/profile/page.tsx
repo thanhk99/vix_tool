@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
 import { authApi } from '@/lib/api/auth.api';
 import { auditApi, AuditLog } from '@/lib/api/audit.api';
+import { formatDateTime } from '@/utils/format';
 import styles from './page.module.css';
+
 
 export default function ProfilePage() {
     const [userProfile, setUserProfile] = useState<any>(null);
@@ -81,7 +83,7 @@ export default function ProfilePage() {
                                 {logs.length > 0 ? (
                                     logs.map((log) => (
                                         <tr key={log.id}>
-                                            <td>{new Date(log.timestamp).toLocaleString('vi-VN')}</td>
+                                            <td>{formatDateTime(log.timestamp)}</td>
                                             <td>{log.module}</td>
                                             <td>
                                                 <span className={`${styles.badge} ${styles[log.action.toLowerCase()] || styles.defaultBadge}`}>

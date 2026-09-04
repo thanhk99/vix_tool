@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Search, ChevronLeft, ChevronRight, ChevronDown, Calendar } from 'lucide-react';
 import { LIMIT_TYPES, CURRENCIES, PURPOSES } from '@/constants/credit-limit';
 import apiClient from '@/lib/api/client';
 import { useNotification } from '@/hooks/useNotification';
 import Modal from '@/components/shared/Modal/Modal';
 import Button from '@/components/shared/Button/Button';
 import CurrencyInput from '@/components/shared/Input/CurrencyInput';
+import { formatDate } from '@/utils/format';
 import styles from './CreditLimitModal.module.css';
+
 
 interface CreditLimitModalProps {
   isOpen: boolean;
@@ -33,6 +35,13 @@ export default function CreditLimitModal({
   const [partnerSearchInput, setPartnerSearchInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Existing contracts for selected partner
+  const [partnerContracts, setPartnerContracts] = useState<any[]>([]);
+  const [isContractDropdownOpen, setIsContractDropdownOpen] = useState(false);
+
+  const partnerWrapperRef = useRef<HTMLDivElement>(null);
+  const contractWrapperRef = useRef<HTMLDivElement>(null);
+
   // Form Data Tab 1
   const [formData, setFormData] = useState({
     partnerId: '',
@@ -49,11 +58,28 @@ export default function CreditLimitModal({
     endDate: ''
   });
 
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
   // Tab 2 (TSDB) Filter and Pagination state
   const [tsdbSearchLimitType, setTsdbSearchLimitType] = useState('');
   const [tsdbPage, setTsdbPage] = useState(1);
   const [tsdbPageSize, setTsdbPageSize] = useState(10);
   const [assetsList, setAssetsList] = useState<any[]>([]);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (partnerWrapperRef.current && !partnerWrapperRef.current.contains(e.target as Node)) {
+        setIsPartnerDropdownOpen(false);
+      }
+      if (contractWrapperRef.current && !contractWrapperRef.current.contains(e.target as Node)) {
+        setIsContractDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Load partners list
   const fetchPartners = useCallback(async () => {
@@ -70,10 +96,74 @@ export default function CreditLimitModal({
     }
   }, []);
 
+  // Load existing contracts for a partner
+  const fetchPartnerContracts = useCallback(async (pId: string) => {
+    if (!pId) {
+      setPartnerContracts([]);
+      return;
+    }
+    try {
+      const contractsMap = new Map<string, any>();
+      
+      // 1. Fetch from partner contracts API
+      try {
+        const res: any = await apiClient.get(`/v1/capital-source/partners/${pId}/contracts?size=100`);
+        const list = res?.content || res?.data?.content || (Array.isArray(res?.data) ? res.data : []);
+        if (Array.isArray(list)) {
+          list.forEach((c: any) => {
+            if (c.contractNo) {
+              contractsMap.set(c.contractNo.toLowerCase(), {
+                id: c.id,
+                contractNo: c.contractNo,
+                totalLimit: c.totalLimit,
+                startDate: c.startDate,
+                endDate: c.endDate,
+                purpose: c.purpose,
+                status: c.status
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Contracts API failed, falling back', e);
+      }
+
+      // 2. Also check credit-limits API for this partner to ensure all existing contracts are covered
+      try {
+        const limitsRes: any = await apiClient.get(`/v1/capital-source/credit-limits?partnerId=${pId}&size=100`);
+        const lList = limitsRes?.content || limitsRes?.data?.content || [];
+        if (Array.isArray(lList)) {
+          lList.forEach((l: any) => {
+            if (l.contractNo && !contractsMap.has(l.contractNo.toLowerCase())) {
+              contractsMap.set(l.contractNo.toLowerCase(), {
+                id: l.contractId,
+                contractNo: l.contractNo,
+                totalLimit: l.totalPool,
+                startDate: l.startDate,
+                endDate: l.endDate,
+                purpose: l.purpose,
+                status: l.status
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Credit limits API failed', e);
+      }
+
+      setPartnerContracts(Array.from(contractsMap.values()));
+    } catch (error) {
+      console.error('Failed to load partner contracts', error);
+      setPartnerContracts([]);
+    }
+  }, []);
+
   // Fetch real TSDB assets for this credit limit / contract
-  const fetchAssets = useCallback(async () => {
+  const fetchAssets = useCallback(async (customContractNo?: string) => {
     const limitIdParam = limitData?.limitId || '';
-    const contractNoParam = limitData?.contractNo || formData.contractNo || '';
+    const contractNoParam = customContractNo !== undefined 
+      ? customContractNo 
+      : (limitData?.contractNo || formDataRef.current.contractNo || '');
 
     try {
       // 1. Lấy danh sách cầm cố
@@ -120,7 +210,24 @@ export default function CreditLimitModal({
       console.error('Failed to load real TSDB', error);
       setAssetsList([]);
     }
-  }, [limitData, formData.contractNo]);
+  }, [limitData?.limitId, limitData?.contractNo, limitData?.poolType]);
+
+  const formatDateForInput = (d: any) => {
+    if (!d) return '';
+    if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d)) {
+      return d.slice(0, 10);
+    }
+    try {
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return '';
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return '';
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -138,12 +245,15 @@ export default function CreditLimitModal({
           totalPool: limitData.totalPool ? String(limitData.totalPool) : '',
           creditRatio: limitData.creditRatio ? String(limitData.creditRatio) : '',
           purpose: limitData.purpose || '',
-          startDate: limitData.startDate ? new Date(limitData.startDate).toISOString().split('T')[0] : '',
-          endDate: limitData.endDate ? new Date(limitData.endDate).toISOString().split('T')[0] : ''
+          startDate: formatDateForInput(limitData.startDate),
+          endDate: formatDateForInput(limitData.endDate)
         });
         const pName = limitData.branchCusId ? `${limitData.branchCusId}${limitData.cusName ? ' - ' + limitData.cusName : ''}` : '';
         setPartnerSearchInput(pName);
-        fetchAssets();
+        if (limitData.partnerId) {
+          fetchPartnerContracts(limitData.partnerId);
+        }
+        fetchAssets(limitData.contractNo);
       } else {
         setFormData({
           partnerId: '',
@@ -160,9 +270,11 @@ export default function CreditLimitModal({
           endDate: ''
         });
         setPartnerSearchInput('');
+        setPartnerContracts([]);
+        setAssetsList([]);
       }
     }
-  }, [isOpen, limitData, initialTab, fetchPartners, fetchAssets]);
+  }, [isOpen, limitData, initialTab, fetchPartners, fetchAssets, fetchPartnerContracts]);
 
   // Compute Rule TH1 vs TH2 when editing:
   // TH1: Ngày bắt đầu > Ngày hiện tại -> Cho phép sửa all trường
@@ -195,20 +307,55 @@ export default function CreditLimitModal({
       ...prev,
       partnerId: p.id,
       branchCusId: p.branchCusId || '',
-      cusName: p.cusName || ''
+      cusName: p.cusName || '',
+      contractId: '',
+      contractNo: ''
     }));
     setPartnerSearchInput(`${p.branchCusId || ''}${p.cusName ? ' - ' + p.cusName : ''}`);
     setIsPartnerDropdownOpen(false);
+    fetchPartnerContracts(p.id);
   };
 
-  // Compute LimitId: BranchCusId_LimitType
+  // Contract filter
+  const filteredContracts = useMemo(() => {
+    if (!formData.contractNo.trim()) return partnerContracts;
+    const kw = formData.contractNo.toLowerCase();
+    return partnerContracts.filter(c => 
+      c.contractNo && c.contractNo.toLowerCase().includes(kw)
+    );
+  }, [partnerContracts, formData.contractNo]);
+
+  // Handler for selecting an existing contract
+  const handleSelectContract = (c: any) => {
+    setFormData(prev => ({
+      ...prev,
+      contractId: c.id || '',
+      contractNo: c.contractNo || '',
+      startDate: c.startDate ? formatDateForInput(c.startDate) : prev.startDate,
+      endDate: c.endDate ? formatDateForInput(c.endDate) : prev.endDate,
+      purpose: c.purpose || prev.purpose
+    }));
+    setIsContractDropdownOpen(false);
+  };
+
+  // Handler for typing contract number
+  const handleContractNoChange = (val: string) => {
+    const matched = partnerContracts.find(c => c.contractNo?.trim().toLowerCase() === val.trim().toLowerCase());
+    setFormData(prev => ({
+      ...prev,
+      contractNo: val,
+      contractId: matched?.id || ''
+    }));
+  };
+
+  // Compute LimitId: BranchCusId_LimitType or ContractNo_LimitType
   const computedLimitId = useMemo(() => {
-    const branchCode = formData.branchCusId || (partnerOptions.find(p => p.id === formData.partnerId)?.branchCusId) || '';
+    const prefix = formData.contractNo.trim() || formData.branchCusId || (partnerOptions.find(p => p.id === formData.partnerId)?.branchCusId) || '';
     if (!formData.poolType || formData.poolType === 'Tổng hợp') {
-      return branchCode ? `${branchCode}_TONG_HOP` : '-';
+      return prefix ? `${prefix}_TONG_HOP` : '-';
     }
-    return branchCode ? `${branchCode}_${formData.poolType.toUpperCase().replace(/\s+/g, '_')}` : '-';
-  }, [formData.branchCusId, formData.partnerId, formData.poolType, partnerOptions]);
+    return prefix ? `${prefix}_${formData.poolType.toUpperCase().replace(/\s+/g, '_')}` : '-';
+  }, [formData.contractNo, formData.branchCusId, formData.partnerId, formData.poolType, partnerOptions]);
 
   const parseNumeric = (val: any) => {
     if (val === undefined || val === null || val === '') return 0;
@@ -289,7 +436,8 @@ export default function CreditLimitModal({
         const createPayload = {
           ...payload,
           partnerId: formData.partnerId,
-          contractNo: formData.contractNo,
+          contractId: formData.contractId || undefined,
+          contractNo: formData.contractNo.trim(),
           contractType: 'CREDIT_LIMIT',
           contractTotalLimit: numTotalPool,
           contractStartDate: formData.startDate,
@@ -349,7 +497,10 @@ export default function CreditLimitModal({
           <button
             type="button"
             className={`${styles.tabButton} ${activeTab === 2 ? styles.tabButtonActive : ''}`}
-            onClick={() => setActiveTab(2)}
+            onClick={() => {
+              setActiveTab(2);
+              fetchAssets(formData.contractNo);
+            }}
           >
             2. Danh mục TSĐB
           </button>
@@ -368,7 +519,7 @@ export default function CreditLimitModal({
                   <label className={styles.fieldLabel}>
                     Mã đơn vị GD <span className={styles.required}>*</span>
                   </label>
-                  <div className={styles.inputWrapper}>
+                  <div className={styles.inputWrapper} ref={partnerWrapperRef}>
                     <input
                       type="text"
                       className={styles.inputWithSuffix}
@@ -425,14 +576,61 @@ export default function CreditLimitModal({
                   <label className={styles.fieldLabel}>
                     Số hợp đồng <span className={styles.required}>*</span>
                   </label>
-                  <input
-                    type="text"
-                    className={styles.selectInput}
-                    placeholder="Nhập số hợp đồng"
-                    value={formData.contractNo}
-                    onChange={(e) => setFormData(prev => ({ ...prev, contractNo: e.target.value }))}
-                    disabled={mode === 'view' || isLockedInTH2}
-                  />
+                  <div className={styles.inputWrapper} ref={contractWrapperRef}>
+                    <input
+                      type="text"
+                      className={styles.inputWithSuffix}
+                      placeholder="Nhập số hợp đồng"
+                      value={formData.contractNo}
+                      onChange={(e) => {
+                        handleContractNoChange(e.target.value);
+                        if (!isContractDropdownOpen && formData.partnerId) setIsContractDropdownOpen(true);
+                      }}
+                      onFocus={() => {
+                        if (mode !== 'view' && !isLockedInTH2 && formData.partnerId) {
+                          setIsContractDropdownOpen(true);
+                        }
+                      }}
+                      disabled={mode === 'view' || isLockedInTH2}
+                    />
+                    <button
+                      type="button"
+                      className={styles.searchIconBtn}
+                      onClick={() => {
+                        if (mode !== 'view' && !isLockedInTH2) {
+                          if (!formData.partnerId) {
+                            notifyError('Lưu ý', 'Vui lòng chọn Mã đơn vị GD trước');
+                            return;
+                          }
+                          setIsContractDropdownOpen(!isContractDropdownOpen);
+                        }
+                      }}
+                      disabled={mode === 'view' || isLockedInTH2}
+                      title="Danh sách hợp đồng"
+                    >
+                      <ChevronDown size={16} />
+                    </button>
+
+                    {isContractDropdownOpen && mode !== 'view' && !isLockedInTH2 && (
+                      <ul className={styles.dropdownList}>
+                        {filteredContracts.length === 0 ? (
+                          <li className={styles.dropdownItem} style={{ color: '#9ca3af', cursor: 'default' }}>
+                            Không tìm thấy hợp đồng
+                          </li>
+                        ) : (
+                          filteredContracts.map((c, idx) => (
+                            <li
+                              key={c.id || c.contractNo || idx}
+                              className={styles.dropdownItem}
+                              onMouseDown={() => handleSelectContract(c)}
+                            >
+                              <span><strong>{c.contractNo}</strong></span>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    )}
+                  </div>
                 </div>
 
                 {/* 3. Loại hạn mức */}
@@ -571,7 +769,8 @@ export default function CreditLimitModal({
                   <input
                     type="text"
                     className={styles.selectInput}
-                    value={formData.contractNo || 'HDTD/2026/001'}
+                    value={formData.contractNo || ''}
+                    placeholder="Chưa có số hợp đồng"
                     disabled
                   />
                 </div>
@@ -599,14 +798,20 @@ export default function CreditLimitModal({
                 <button
                   type="button"
                   className={styles.btnOutline}
-                  onClick={() => setTsdbSearchLimitType('')}
+                  onClick={() => {
+                    setTsdbSearchLimitType('');
+                    setTsdbPage(1);
+                  }}
                 >
                   Xóa điều kiện
                 </button>
                 <button
                   type="button"
                   className={styles.btnPrimary}
-                  onClick={() => setTsdbPage(1)}
+                  onClick={() => {
+                    fetchAssets(formData.contractNo);
+                    setTsdbPage(1);
+                  }}
                 >
                   Tra cứu
                 </button>
@@ -658,13 +863,13 @@ export default function CreditLimitModal({
                           {item.parValue != null ? Number(item.parValue).toLocaleString('vi-VN') : '-'}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          {item.issueDate ? new Date(item.issueDate).toLocaleDateString('en-GB') : '-'}
+                          {formatDate(item.issueDate)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          {item.maturityDate ? new Date(item.maturityDate).toLocaleDateString('en-GB') : '-'}
+                          {formatDate(item.maturityDate)}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          {item.callDate ? new Date(item.callDate).toLocaleDateString('en-GB') : '-'}
+                          {formatDate(item.callDate)}
                         </td>
                         <td>{item.couponType || '-'}</td>
                         <td style={{ textAlign: 'right' }}>

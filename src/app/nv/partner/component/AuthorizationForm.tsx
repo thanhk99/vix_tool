@@ -9,6 +9,8 @@ import { useNotification } from "@/hooks/useNotification";
 import { X, Save } from "lucide-react";
 
 interface AuthorizationFormProps {
+    initialData?: AuthorizationItem | null;
+    isView?: boolean;
     existingAuths?: AuthorizationItem[];
     legalReps?: AuthorizationItem[];
     onSubmit: (data: CreateAuthorization) => void;
@@ -18,6 +20,8 @@ interface AuthorizationFormProps {
 }
 
 export default function AuthorizationForm({
+    initialData,
+    isView = false,
     onSubmit,
     onClose,
     nextSeqId = 1,
@@ -57,6 +61,36 @@ export default function AuthorizationForm({
 
     // Initial setup on mount or props change
     useEffect(() => {
+        if (initialData) {
+            setFormData({
+                seqId: initialData.seqId || nextSeqId,
+                authType: (initialData.authType as any) || authType,
+                parentAuthId: initialData.parentAuthId || "",
+                authName: initialData.authName || "",
+                authPosition: initialData.authPosition || "",
+                authidNo: initialData.authidNo || "",
+                authissueDate: initialData.authissueDate || "",
+                issuePlace: initialData.issuePlace || "",
+                authedName: initialData.authedName || "",
+                authedIdNo: initialData.authedIdNo || "",
+                authedIssueDate: initialData.authedIssueDate || "",
+                authedIssuePlace: initialData.authedIssuePlace || "",
+                authedPosition: initialData.authedPosition || "",
+                authNo: initialData.authNo || "",
+                effDate: initialData.effDate || "",
+                expiryDate: initialData.expiryDate || "",
+                scope: initialData.scope || "",
+                note: initialData.note || "",
+                phone: initialData.phone || "",
+                email: initialData.email || "",
+                status: initialData.status || "ACTIVE"
+            });
+            if (initialData.parentAuthId) {
+                setSelectedRepId(initialData.parentAuthId);
+            }
+            return;
+        }
+
         if (authType === 'AUTHORIZATION' && nextSeqId === 1) {
             // Level 1: Automatically pull legal representative
             const rep = legalReps.length > 0 ? legalReps[0] : null;
@@ -90,7 +124,7 @@ export default function AuthorizationForm({
                 status: "ACTIVE"
             }));
         }
-    }, [nextSeqId, authType, legalReps]);
+    }, [initialData, nextSeqId, authType, legalReps]);
 
     const handleSelectLegalRep = (repId: string) => {
         setSelectedRepId(repId);
@@ -178,7 +212,7 @@ export default function AuthorizationForm({
 
             // Rule: CCCD không được trùng với thông tin đã có trong danh sách người đại diện pháp luật
             const isDuplicate = existingAuths.some(
-                a => a.authType === 'LEGAL_REP' && a.authidNo?.trim() === formData.authidNo?.trim()
+                a => a.authType === 'LEGAL_REP' && a.id !== initialData?.id && a.authidNo?.trim() === formData.authidNo?.trim()
             );
             if (isDuplicate) {
                 notifyError("Lỗi", "Số CCCD này đã tồn tại trong danh sách Người đại diện pháp luật!");
@@ -321,6 +355,7 @@ export default function AuthorizationForm({
                         <Input
                             label="Tên"
                             required
+                            disabled={isView}
                             placeholder="Nhập họ tên"
                             value={formData.authName}
                             maxLength={50}
@@ -334,6 +369,7 @@ export default function AuthorizationForm({
                         <Input
                             label="Số CCCD"
                             required
+                            disabled={isView}
                             placeholder="Nhập số CCCD"
                             value={formData.authidNo}
                             maxLength={12}
@@ -345,6 +381,7 @@ export default function AuthorizationForm({
                             type="date"
                             label="Ngày cấp"
                             required
+                            disabled={isView}
                             max={todayStr}
                             value={formData.authissueDate}
                             onChange={(e) => handleChange('authissueDate', e.target.value)}
@@ -357,6 +394,7 @@ export default function AuthorizationForm({
                         <Input
                             label="Nơi cấp"
                             required
+                            disabled={isView}
                             placeholder="Nhập nơi cấp"
                             value={formData.issuePlace}
                             maxLength={50}
@@ -370,6 +408,7 @@ export default function AuthorizationForm({
                         <Input
                             label="Chức vụ"
                             required
+                            disabled={isView}
                             placeholder="Nhập chức vụ"
                             value={formData.authPosition}
                             maxLength={30}
@@ -391,11 +430,13 @@ export default function AuthorizationForm({
 
                 <div className={styles.buttonRow}>
                     <button type="button" className={styles.btnCancel} onClick={onClose}>
-                        <X size={16} /> Hủy bỏ
+                        <X size={16} /> {isView ? "Đóng" : "Hủy bỏ"}
                     </button>
-                    <button type="submit" className={styles.btnSave}>
-                        <Save size={16} /> Lưu
-                    </button>
+                    {!isView && (
+                        <button type="submit" className={styles.btnSave}>
+                            <Save size={16} /> Lưu
+                        </button>
+                    )}
                 </div>
             </form>
         );
@@ -657,11 +698,13 @@ export default function AuthorizationForm({
 
             <div className={styles.buttonRow}>
                 <button type="button" className={styles.btnCancel} onClick={onClose}>
-                    <X size={16} /> Hủy bỏ
+                    <X size={16} /> {isView ? "Đóng" : "Hủy bỏ"}
                 </button>
-                <button type="submit" className={styles.btnSave}>
-                    <Save size={16} /> Lưu
-                </button>
+                {!isView && (
+                    <button type="submit" className={styles.btnSave}>
+                        <Save size={16} /> Lưu
+                    </button>
+                )}
             </div>
         </form>
     );

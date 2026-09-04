@@ -8,6 +8,8 @@ import ContractFormModal from "./ContractFormModal";
 import ContractCreditLimit from "./ContractCreditLimit";
 import { Eye, Edit2, Check, X, Trash2 } from "lucide-react";
 import { getStatusDisplay } from "@/constants/status";
+import { formatDate } from "@/utils/format";
+
 
 interface ContractTabProps {
     partnerId: string;
@@ -151,15 +153,13 @@ export default function ContractTab({ partnerId, isView }: ContractTabProps) {
             key: "startDate",
             title: "Ngày bắt đầu",
             align: 'center',
-            render: (value) =>
-                value ? new Date(value as string).toLocaleDateString("vi-VN") : "-",
+            render: (value) => formatDate(value as string),
         },
         {
             key: "endDate",
             title: "Ngày hết hạn",
             align: 'center',
-            render: (value) =>
-                value ? new Date(value as string).toLocaleDateString("vi-VN") : "-",
+            render: (value) => formatDate(value as string),
         },
         {
             key: "status",

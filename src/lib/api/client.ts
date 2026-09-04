@@ -1,8 +1,19 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth.store';
 
+export const getApiBaseUrl = (): string => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (typeof window !== 'undefined') {
+    // Tự động sử dụng hostname/IP của trình duyệt để gọi Backend port 8888 khi expose ra ngoài
+    return `${window.location.protocol}//${window.location.hostname}:8888`;
+  }
+  return 'http://localhost:8888';
+};
+
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -26,6 +37,7 @@ const processQueue = (error: any, token: string | null = null) => {
 apiClient.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
+      config.baseURL = getApiBaseUrl();
       const { token, deptId } = useAuthStore.getState();
       if (token) {
         config.headers.set(
@@ -87,7 +99,7 @@ apiClient.interceptors.response.use(
       }
 
       try {
-        const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8888'}/v1/identity/auth/refresh-token`, { refreshToken });
+        const { data } = await axios.post(`${getApiBaseUrl()}/v1/identity/auth/refresh-token`, { refreshToken });
         
         // Extract new tokens based on expected API response format
         const newAccessToken = data?.data?.accessToken || data?.accessToken;

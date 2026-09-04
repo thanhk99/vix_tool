@@ -12,6 +12,8 @@ import { SignatureFormData } from "@/types/funding.types";
 import { signatureApi } from "@/lib/api/signature.api";
 import { getStatusDisplay } from "@/constants/status";
 import { Eye, FileText, Image as ImageIcon } from "lucide-react";
+import { formatDate } from "@/utils/format";
+
 
 
 const INITIAL_FORM: SignatureFormData = {
@@ -180,8 +182,8 @@ export default function SignatureTab({ partnerId, isView }: { partnerId: string;
       notifyWarning("Cảnh báo", "Vui lòng chọn ngày hiệu lực");
       return false;
     }
-    if (formData.expiryDate && new Date(formData.expiryDate) <= new Date(formData.effectiveDate)) {
-      notifyWarning("Cảnh báo", "Ngày hết hạn phải sau ngày hiệu lực");
+    if (formData.expiryDate && formData.expiryDate <= formData.effectiveDate) {
+      notifyWarning("Cảnh báo", "Ngày hết hạn phải lớn hơn ngày hiệu lực");
       return false;
     }
     if (!formData.status) {
@@ -292,15 +294,22 @@ export default function SignatureTab({ partnerId, isView }: { partnerId: string;
     {
       key: "effectiveDate",
       title: "Ngày hiệu lực",
+      render: (value) => formatDate(value as string),
     },
     {
       key: "expiryDate",
       title: "Ngày hết hạn",
+      render: (value) => formatDate(value as string),
     },
     {
       key: "status",
       title: "Trạng thái",
       render: (value) => getStatusDisplay(String(value)).label,
+    },
+    {
+      key: "updatedBy",
+      title: "Người thực hiện",
+      render: (value, row: any) => row.updatedByName || value || "-",
     },
     {
       key: "action",
@@ -540,6 +549,7 @@ export default function SignatureTab({ partnerId, isView }: { partnerId: string;
                 label="Ngày hết hạn"
                 type="date"
                 value={formData.expiryDate}
+                min={formData.effectiveDate || undefined}
                 onChange={(e) => handleChange("expiryDate", e.target.value)}
                 disabled={saving}
                 fullWidth

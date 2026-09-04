@@ -10,7 +10,7 @@ import ContactTab from "./ContactTab";
 import BankAccountTab from "./BankAccountTab";
 import DocumentTab from "./DocumentTab";
 import AuthorizationTab from "./AuthorizationTab";
-import { formatCurrency } from "@/utils/format";
+import { formatCurrency, formatDate } from "@/utils/format";
 
 interface ViewPartnerProps {
   partner: PartnersItem | null;
@@ -65,13 +65,13 @@ export default function ViewPartner({
         <div className={styles.row}><div className={styles.label}>Email</div><div className={styles.value}>{partner.email || "-"}</div></div>
         <div className={styles.row}><div className={styles.label}>Website</div><div className={styles.value}>{partner.website || "-"}</div></div>
         <div className={styles.row}><div className={styles.label}>Số ĐKKD/CCCD</div><div className={styles.value}>{partner.idCode || "-"}</div></div>
-        <div className={styles.row}><div className={styles.label}>Ngày cấp lần đầu</div><div className={styles.value}>{partner.fistIssueDate || "-"}</div></div>
+        <div className={styles.row}><div className={styles.label}>Ngày cấp lần đầu</div><div className={styles.value}>{formatDate(partner.fistIssueDate)}</div></div>
         <div className={styles.row}><div className={styles.label}>Số lần thay đổi</div><div className={styles.value}>{partner.changeCount ?? 0}</div></div>
-        <div className={styles.row}><div className={styles.label}>Ngày thay đổi gần nhất</div><div className={styles.value}>{partner.lastIssueDate || "-"}</div></div>
+        <div className={styles.row}><div className={styles.label}>Ngày thay đổi gần nhất</div><div className={styles.value}>{formatDate((Number(partner.changeCount ?? 0) === 0 && partner.fistIssueDate) ? partner.fistIssueDate : (partner.lastIssueDate || partner.fistIssueDate))}</div></div>
         <div className={styles.row}><div className={styles.label}>Nơi cấp</div><div className={styles.value}>{partner.issueBy || "-"}</div></div>
-        <div className={styles.row}><div className={styles.label}>Lý do thay đổi</div><div className={styles.value}>{partner.changeReason || "-"}</div></div>
+        <div className={styles.row}><div className={styles.label}>Lý do thay đổi</div><div className={styles.value}>{(partner.changeReason && !partner.changeReason.startsWith('{')) ? partner.changeReason : "-"}</div></div>
         <div className={styles.row}><div className={styles.label}>GP hoạt động</div><div className={styles.value}>{partner.opLiscenseNo || "-"}</div></div>
-        <div className={styles.row}><div className={styles.label}>Ngày cấp GP</div><div className={styles.value}>{partner.opIssueDate || "-"}</div></div>
+        <div className={styles.row}><div className={styles.label}>Ngày cấp GP</div><div className={styles.value}>{formatDate(partner.opIssueDate)}</div></div>
         <div className={styles.row}><div className={styles.label}>Mã TVLK (VSDC Code)</div><div className={styles.value}>{partner.depositoryMemberCode || "-"}</div></div>
         <div className={styles.row}><div className={styles.label}>Nơi mở</div><div className={styles.value}>{partner.tradingGateway || "-"}</div></div>
         <div className={styles.row}><div className={styles.label}>Tổng hạn mức (Cấp 1)</div><div className={styles.value} style={{ color: "#2563eb", fontWeight: 600 }}>{formatCurrency(partner.totalPool as number)}</div></div>

@@ -12,7 +12,9 @@ import apiClient from '@/lib/api/client';
 import { useNotification } from '@/hooks/useNotification';
 import { getStatusDisplay } from '@/constants/status';
 import { Plus, Edit2, Trash2, FileBox, Check, X, Download } from 'lucide-react';
+import { formatDate } from '@/utils/format';
 import styles from './ContractDebtList.module.css';
+
 
 export default function ContractDebtList() {
   const router = useRouter();
@@ -218,19 +220,19 @@ export default function ContractDebtList() {
     { key: 'contactNo', title: 'Số HĐ tín dụng' },
     { key: 'limitCode', title: 'Mã hạn mức' },
     { key: 'lnContactNo', title: 'Số HĐ giải ngân' },
-    { key: 'lnContactDate', title: 'Ngày khế ước' },
+    { key: 'lnContactDate', title: 'Ngày khế ước', render: (val) => formatDate(val as string) },
     { key: 'lnAmt', title: 'Số tiền giải ngân', render: (val) => Number(val).toLocaleString() },
     {
       key: 'lnDate',
       title: 'Ngày giải ngân',
-      render: (value: unknown) => value ? new Date(value as string).toLocaleDateString('vi-VN') : '-'
+      render: (value: unknown) => formatDate(value as string)
     },
     { key: 'contractIntRate', title: 'Lãi HĐ (%)' },
     { key: 'actIntRate', title: 'Lãi thực tế (%)' },
     { key: 'reason', title: 'Lý do chênh lệch' },
     { key: 'casaRate', title: 'Tỷ lệ duy trì CASA (%)' },
     { key: 'maturityAmt', title: 'Số tiền đáo hạn', render: (val) => val ? Number(val).toLocaleString() : '-' },
-    { key: 'settDate', title: 'Ngày tất toán', render: (val) => (val as string) || '-' },
+    { key: 'settDate', title: 'Ngày tất toán', render: (val) => formatDate(val as string) },
     { key: 'term', title: 'Kỳ hạn (tháng)' },
     { key: 'currency', title: 'Đơn vị tiền tệ' },
     { key: 'purpose', title: 'Mục đích' },

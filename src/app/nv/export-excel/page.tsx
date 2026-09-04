@@ -15,7 +15,10 @@ import {
   Users, 
   DollarSign 
 } from 'lucide-react';
+import { formatDateTime } from '@/utils/format';
+
 import styles from './ExportExcel.module.css';
+
 
 export default function ExportExcelPage() {
   const { notifyError } = useNotification();
@@ -55,16 +58,6 @@ export default function ExportExcelPage() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const formatDateTime = (dateStr?: string) => {
-    if (!dateStr) return '-';
-    try {
-      const d = new Date(dateStr);
-      if (!isNaN(d.getTime())) {
-        return `${d.toLocaleTimeString('vi-VN')} - ${d.toLocaleDateString('vi-VN')}`;
-      }
-    } catch (e) {}
-    return dateStr;
-  };
 
   const getJobTypeLabel = (type: string) => {
     switch (type?.toUpperCase()) {

@@ -19,6 +19,7 @@ import PartnerApprovalModal from './PartnerApprovalModal';
 import { usePermission } from '@/hooks/usePermission';
 import { ResourceCode, ActionCode } from '@/types/permission.types';
 import { useExportJob } from '@/hooks/useExportJob';
+import { formatDate } from '@/utils/format';
 
 export default function PartnerList() {
   const [partners, setPartners] = useState<PartnersItem[]>([]);
@@ -242,16 +243,6 @@ export default function PartnerList() {
     }
   };
 
-  const formatDate = (val: any) => {
-    if (!val) return "-";
-    try {
-      const d = new Date(val);
-      if (!isNaN(d.getTime())) {
-        return d.toLocaleDateString('vi-VN');
-      }
-    } catch (e) {}
-    return String(val);
-  };
 
   const columns: TableColumn<PartnersItem>[] = [
     {
@@ -290,7 +281,11 @@ export default function PartnerList() {
       key: "lastIssueDate",
       title: "Cấp cuối",
       width: 95,
-      render: (val) => formatDate(val)
+      render: (val, record) => {
+        const isNeverChanged = Number(record.changeCount ?? 0) === 0;
+        const lastDate = (isNeverChanged && record.fistIssueDate) ? record.fistIssueDate : (val || record.fistIssueDate);
+        return formatDate(lastDate);
+      }
     },
     {
       key: "issueBy",

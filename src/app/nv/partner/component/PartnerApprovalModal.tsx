@@ -5,7 +5,9 @@ import { PartnersItem } from '@/types/funding.types';
 import apiClient from '@/lib/api/client';
 import { useNotification } from '@/hooks/useNotification';
 import { X, Check, AlertCircle } from 'lucide-react';
+import { formatDate } from '@/utils/format';
 import styles from './PartnerApprovalModal.module.css';
+
 
 interface PartnerApprovalModalProps {
     isOpen: boolean;
@@ -49,16 +51,7 @@ export default function PartnerApprovalModal({
         const buildChangeHistory = async () => {
             try {
                 setLoading(true);
-                const formatTime = (timeStr?: string) => {
-                    if (!timeStr) return new Date().toLocaleDateString('vi-VN');
-                    try {
-                        const d = new Date(timeStr);
-                        if (!isNaN(d.getTime())) {
-                            return d.toLocaleDateString('vi-VN');
-                        }
-                    } catch (e) {}
-                    return String(timeStr);
-                };
+                const formatTime = (timeStr?: string) => formatDate(timeStr);
 
                 const userStr = partner.updatedBy || partner.createdBy || 'user';
                 const timeStr = formatTime(partner.lastUpdated || (partner as any).createdAt);

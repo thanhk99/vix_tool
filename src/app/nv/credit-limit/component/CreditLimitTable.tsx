@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Plus, Download, Edit2, Eye, RefreshCw, X, Filter, Trash2, FileBox, Clock, ChevronRight, ChevronDown, List, Check } from 'lucide-react';
-import { formatCurrency } from '@/utils/format';
+import { formatCurrency, formatDate } from '@/utils/format';
 import Pagination from '@/components/shared/Pagination/Pagination';
 import { CreditLimit } from '@/types/credit-limit';
 import { LIMIT_TYPES } from '@/constants/credit-limit';
@@ -337,13 +337,13 @@ export default function CreditLimitTable() {
       key: 'startDate',
       title: 'Ngày bắt đầu',
       align: 'center',
-      render: (val, record) => record.isPartnerNode ? '' : (val ? new Date(val as string).toLocaleDateString('en-GB') : '-'),
+      render: (val, record) => record.isPartnerNode ? '' : formatDate(val as string),
     },
     {
       key: 'endDate',
       title: 'Ngày hết hạn',
       align: 'center',
-      render: (val, record) => record.isPartnerNode ? '' : (val ? new Date(val as string).toLocaleDateString('en-GB') : '-'),
+      render: (val, record) => record.isPartnerNode ? '' : formatDate(val as string),
     },
     {
       key: 'creditRatio',

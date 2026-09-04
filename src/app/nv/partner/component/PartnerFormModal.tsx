@@ -71,6 +71,26 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
     const [activeTab, setActiveTab] = useState<'signature' | 'authorization' | 'custommertype' | 'document' | 'bank_account' | 'contact'>('signature');
 
     const [isDraft, setIsDraft] = useState(false);
+    const [duplicateErrors, setDuplicateErrors] = useState<{ branchCusId?: string }>({});
+
+    const handleBlurBranchCusId = async () => {
+        const val = formData.branchCusId?.trim();
+        if (!val) return;
+        try {
+            const res: any = await apiClient.get('/v1/capital-source/partners/check-duplicate', {
+                params: { branchCusId: val, excludeId: localPartnerId || undefined }
+            });
+            const data = res?.data?.data || res?.data || res;
+            if (data?.branchCusIdDuplicate) {
+                setDuplicateErrors(prev => ({ ...prev, branchCusId: 'Mã đơn vị GD đã tồn tại trong hệ thống!' }));
+                notifyWarning('Cảnh báo trùng lặp', 'Mã đơn vị GD đã tồn tại trong hệ thống!');
+            } else {
+                setDuplicateErrors(prev => ({ ...prev, branchCusId: undefined }));
+            }
+        } catch (err) {
+            console.warn('Check duplicate branchCusId error:', err);
+        }
+    };
 
     // Pending states for sub-tabs when creating a partner
     const [pendingSignatures, setPendingSignatures] = useState<UnifiedItem[]>([]);
@@ -93,6 +113,12 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
                         if (found && found.id) {
                             if (found.totalPool !== undefined && found.totalPool !== null) {
                                 found.totalPool = Number(found.totalPool).toLocaleString('vi-VN');
+                            }
+                            if ((!found.changeCount || Number(found.changeCount) === 0) && found.fistIssueDate) {
+                                found.lastIssueDate = found.lastIssueDate || found.fistIssueDate;
+                            }
+                            if (found.changeReason && (found.changeReason.startsWith('{') || found.changeReason.startsWith('['))) {
+                                found.changeReason = '';
                             }
                             setFormData(found);
 
@@ -148,6 +174,30 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
             return;
         }
 
+        if (name === 'fistIssueDate') {
+            setFormData((prev: any) => {
+                const count = Number(prev.changeCount ?? 0);
+                const isNeverChanged = count === 0;
+                return {
+                    ...prev,
+                    fistIssueDate: value,
+                    lastIssueDate: (isNeverChanged || !prev.lastIssueDate) ? value : prev.lastIssueDate,
+                };
+            });
+            return;
+        }
+
+        if (name === 'changeCount') {
+            const count = Number(value ?? 0);
+            setFormData((prev: any) => ({
+                ...prev,
+                changeCount: count,
+                lastIssueDate: count === 0 ? (prev.fistIssueDate || prev.lastIssueDate) : prev.lastIssueDate,
+                changeReason: count === 0 ? '' : prev.changeReason,
+            }));
+            return;
+        }
+
         setFormData((prev: any) => ({
             ...prev,
             [name]: type === "checkbox" ? checked : value,
@@ -160,7 +210,7 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
         setActiveTab(tabName);
     };
 
-    const validateForm = () => {
+    const validateForm = async () => {
         // 1. Các trường bắt buộc
         if (!formData?.cusId?.trim()) { notifyWarning("Cảnh báo", "Vui lòng nhập Mã KH!"); return false; }
         if (!formData?.branchCusId?.trim()) { notifyWarning("Cảnh báo", "Vui lòng nhập Mã đơn vị GD!"); return false; }
@@ -194,6 +244,27 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
             }
         }
 
+        // 5. Kiểm tra trùng lặp Mã đơn vị GD
+        try {
+            const checkRes: any = await apiClient.get('/v1/capital-source/partners/check-duplicate', {
+                params: {
+                    branchCusId: formData.branchCusId?.trim(),
+                    excludeId: localPartnerId || undefined
+                }
+            });
+            const dupData = checkRes?.data?.data || checkRes?.data || checkRes;
+
+            if (dupData?.branchCusIdDuplicate) {
+                setDuplicateErrors({ branchCusId: 'Mã đơn vị GD đã tồn tại trong hệ thống!' });
+                notifyError('Lỗi trùng lặp', 'Mã đơn vị GD đã tồn tại trong hệ thống! Vui lòng kiểm tra lại.');
+                return false;
+            } else {
+                setDuplicateErrors({});
+            }
+        } catch (err) {
+            console.warn('Validate duplicate API check error:', err);
+        }
+
         return true;
     };
 
@@ -201,11 +272,15 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!validateForm()) return;
+        const isValid = await validateForm();
+        if (!isValid) return;
         
         setSaving(true);
         try {
-            const finalLastIssueDate = formData.lastIssueDate || formData.fistIssueDate || null;
+            const count = Number(formData.changeCount ?? 0);
+            const finalLastIssueDate = (count === 0 && formData.fistIssueDate)
+                ? formData.fistIssueDate
+                : (formData.lastIssueDate || formData.fistIssueDate || null);
 
             const submitData = {
                 cusId: formData.cusId,
@@ -482,7 +557,14 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
                                     type="text"
                                     name="branchCusId"
                                     value={formData.branchCusId || ""}
-                                    onChange={handleChange}
+                                    onChange={(e) => {
+                                        handleChange(e);
+                                        if (duplicateErrors.branchCusId) {
+                                            setDuplicateErrors(prev => ({ ...prev, branchCusId: undefined }));
+                                        }
+                                    }}
+                                    onBlur={handleBlurBranchCusId}
+                                    error={duplicateErrors.branchCusId}
                                 />
 
                                 <Input disabled={isView}
@@ -567,11 +649,11 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
                                         onChange={handleChange}
                                     />
 
-                                    <Input disabled={isView}
+                                    <Input disabled={isView || Number(formData.changeCount ?? 0) === 0}
                                         label="Ngày thay đổi gần nhất"
                                         type="date"
                                         name="lastIssueDate"
-                                        value={formData.lastIssueDate || ""}
+                                        value={(Number(formData.changeCount ?? 0) === 0 ? (formData.fistIssueDate || formData.lastIssueDate) : formData.lastIssueDate) || ""}
                                         onChange={handleChange}
                                     />
 
@@ -583,12 +665,12 @@ export default function PartnerFormModal({ isOpen, onClose, partnerId, onSuccess
                                         onChange={handleChange}
                                     />
 
-                                    <Input disabled={isView}
+                                    <Input disabled={isView || Number(formData.changeCount ?? 0) === 0}
                                         label="Lý do thay đổi"
                                         name="changeReason"
-                                        value={formData.changeReason || ""}
+                                        value={Number(formData.changeCount ?? 0) === 0 ? "" : (formData.changeReason || "")}
                                         onChange={handleChange}
-                                        placeholder="Nhập lý do thay đổi"
+                                        placeholder={Number(formData.changeCount ?? 0) === 0 ? "Chưa thay đổi ĐKKD" : "Nhập lý do thay đổi"}
                                     />
                                 </div>
 
